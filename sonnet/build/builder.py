@@ -29,6 +29,9 @@ class Builder(object):
         3: ['3.0', '3.1', '3.2', '3.3', '3.4', '3.5', '3.6']
     }
 
+    def __init__(self):
+        self._manifest = []
+
     def build(self, sonnet, **options):
         """
         Builds a sonnet.
@@ -39,9 +42,9 @@ class Builder(object):
         setup_kwargs = self._setup(sonnet, **options)
 
         setup = os.path.join(sonnet.base_dir, 'setup.py')
+        manifest = os.path.join(sonnet.base_dir, 'MANIFEST.in')
         self._write_setup(setup_kwargs, setup)
-
-        setup_kwargs['script_name'] = 'setup.py'
+        self._write_manifest(manifest)
 
         try:
             dist = Distribution(setup_kwargs)
@@ -50,13 +53,16 @@ class Builder(object):
             raise
         finally:
             os.unlink(setup)
+            os.unlink(manifest)
 
     def _setup(self, sonnet, **options):
         setup_kwargs = {
             'name': sonnet.name,
             'version': sonnet.version,
             'description': sonnet.description,
-            'long_description': sonnet.readme
+            'long_description': sonnet.readme,
+            'include_package_data': True,
+            'script_name': 'setup.py'
         }
 
         setup_kwargs.update(self._author(sonnet))
@@ -190,6 +196,9 @@ class Builder(object):
 
                 if element.endswith('.py') and os.path.basename(element) != '__init__.py':
                     modules.append(element.replace('.py', '').replace('/', '.'))
+                elif os.path.basename(element) != '__init__.py' and '__pycache__' not in element:
+                    # Non Python file, add them to data
+                    self._manifest.append('include {}'.format(element))
 
                 crawled.append(element)
 
@@ -204,3 +213,7 @@ class Builder(object):
     def _write_setup(self, setup, dest):
         with open(dest, 'w') as f:
             f.write(SETUP_TEMPLATE.format(repr(setup)))
+
+    def _write_manifest(self, manifest):
+        with open(manifest, 'w') as f:
+            f.writelines(self._manifest)

@@ -14,6 +14,7 @@ from .package import Dependency
 class Sonnet(object):
 
     EXCLUDES = ()
+    INCLUDES = ()
 
     def __init__(self, path, builder=Builder()):
         self._path = path
@@ -132,7 +133,7 @@ class Sonnet(object):
 
     @property
     def include(self):
-        return self._config['package'].get('include', [self.name])
+        return self._config['package'].get('include', []) + list(self.INCLUDES)
 
     @property
     def exclude(self):

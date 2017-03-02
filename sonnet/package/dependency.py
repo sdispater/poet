@@ -34,6 +34,7 @@ class Dependency(object):
 
     def _normalize(self, constraint):
         if isinstance(constraint, dict):
+            # Neither setuptools nor distutils support VCS constraint
             return
 
         constraint = Spec(constraint)
@@ -66,3 +67,15 @@ class Dependency(object):
                 normalized.append(str(spec))
 
         return ','.join(normalized)
+
+    def _normalize_vcs_constraint(self, constraint):
+        if 'git' in constraint:
+            repo = constraint['git']
+            if 'branch' in constraint:
+                revision = constraint['branch']
+            elif 'tag' in constraint:
+                revision = constraint['tag']
+            else:
+                revision = constraint['rev']
+
+            return '{}@{}#egg={}'.format(repo, revision, self._name)
