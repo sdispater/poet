@@ -3,9 +3,9 @@
 # Packages
 *.egg
 *.egg-info
-dist
-build
-_build
+/dist
+/build
+/_build
 .cache
 *.so
 
