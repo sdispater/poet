@@ -1,0 +1,63 @@
+# -*- coding: utf-8 -*-
+
+from pip.models import PyPI
+from xmlrpc.client import ServerProxy
+
+from semantic_version import Version
+
+from ..version_parser import VersionParser
+from ..package import Package
+
+
+class PyPiRepository(object):
+
+    DEFAULT_URL = PyPI.pypi_url
+
+    SEARCH_FULLTEXT = 0
+    SEARCH_NAME = 1
+
+    def __init__(self, url=DEFAULT_URL):
+        self._url = url
+
+    def find_packages(self, name, constraint=None):
+        packages = []
+
+        if constraint is not None:
+            version_parser = VersionParser()
+            constraint = version_parser.parse_constraints(constraint)
+
+        with ServerProxy(self._url) as client:
+            versions = client.package_releases(name, True)
+
+        if constraint:
+            versions = constraint.select([Version.coerce(v) for v in versions])
+
+        for version in versions:
+            try:
+                packages.append(Package(name, version))
+            except ValueError:
+                continue
+
+        return packages
+
+    def search(self, query, mode=0):
+        results = []
+
+        search = {
+            'name': query
+        }
+
+        if mode == self.SEARCH_FULLTEXT:
+            search['summary'] = query
+
+        with ServerProxy(self._url) as client:
+            hits = client.search(search, 'or')
+
+        for hit in hits:
+            results.append({
+                'name': hit['name'],
+                'description': hit['summary'],
+                'version': hit['version']
+            })
+
+        return results

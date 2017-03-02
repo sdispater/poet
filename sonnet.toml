@@ -1,0 +1,34 @@
+[package]
+name = "sonnet"
+version = "0.1.0"
+description = "Sonnet helps you declare, manage and install dependencies of PHP projects, ensuring you have the right stack everywhere."
+
+license = "MIT"
+
+authors = [
+    "Sébastien Eustace <sebastien@eustace.io>"
+]
+
+readme = 'README.rst'
+
+repository = "https://github.com/sdispater/sonnet"
+homepage = "https://sonnet.eustace.io"
+documentation = "https://sonnet.eustace.io/docs"
+
+keywords = ['packaging', 'sonnet']
+
+include = ['sonnet/**/*']
+
+python = ["~2.7", "^3.2"]
+
+
+[dependencies]
+pendulum = "^1.1"
+cleo = { git = "git+https://github.com/sdispater/cleo.git", branch = "master" }
+
+[dev-dependencies]
+pytest = "^3.0"
+
+
+[scripts]
+sonnet = 'application.run'
