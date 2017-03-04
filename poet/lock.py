@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
 from .package import PipDependency
-from .sonnet import Sonnet
+from .poet import Poet
 
 
-class Lock(Sonnet):
+class Lock(Poet):
 
     def is_lock(self):
         return True

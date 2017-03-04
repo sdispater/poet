@@ -22,7 +22,7 @@ class Application(BaseApplication):
     """
 
     def __init__(self):
-        super(Application, self).__init__('Sonnet', VERSION)
+        super(Application, self).__init__('Poet', VERSION)
 
     def get_default_commands(self):
         default_commands = super(Application, self).get_default_commands()

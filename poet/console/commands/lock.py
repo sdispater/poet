@@ -7,7 +7,7 @@ from .command import Command
 
 class LockCommand(Command):
     """
-    Lock the dependencies set in sonnet.toml.
+    Lock the dependencies set in poetry.toml.
 
     lock
     """
@@ -18,4 +18,4 @@ class LockCommand(Command):
 
         installer = Installer(self, self._repository)
 
-        installer.lock(self.sonnet)
+        installer.lock(self.poet)

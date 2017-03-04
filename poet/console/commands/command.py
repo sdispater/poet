@@ -6,7 +6,7 @@ import sys
 from cleo import Command as BaseCommand, InputOption
 
 from ...repositories import PyPiRepository
-from ...sonnet import Sonnet
+from ...poet import Poet
 
 
 class Command(BaseCommand):
@@ -14,28 +14,28 @@ class Command(BaseCommand):
     def __init__(self):
         super(Command, self).__init__()
 
-        self._sonnet = None
+        self._poet = None
         self._repository = PyPiRepository()
 
     @property
-    def sonnet_file(self):
-        return os.path.join(os.getcwd(), 'sonnet.toml')
+    def poet_file(self):
+        return os.path.join(os.getcwd(), 'poetry.toml')
 
     @property
-    def sonnet(self):
+    def poet(self):
         """
-        Return the Sonnet instance.
+        Return the Poet instance.
 
-        :rtype: sonnet.sonnet.Sonnet
+        :rtype: poet.poet.Poet
         """
-        if self._sonnet is None:
-            self._sonnet = Sonnet(self.sonnet_file)
+        if self._poet is None:
+            self._poet = Poet(self.poet_file)
 
-        return self._sonnet
+        return self._poet
 
     @property
     def lock_file(self):
-        return self.sonnet.lock_file
+        return self.poetry.lock_file
 
     def has_lock(self):
         return os.path.exists(self.lock_file)

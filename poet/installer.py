@@ -18,18 +18,18 @@ class Installer(object):
         self._command = command
         self._repository = repository
 
-    def install(self, sonnet, dev=True):
-        if not sonnet.is_lock():
-            self.lock(sonnet, dev=dev)
+    def install(self, poet, dev=True):
+        if not poet.is_lock():
+            self.lock(poet, dev=dev)
 
-            return self.install(sonnet.lock, dev=dev)
+            return self.install(poetry.lock, dev=dev)
 
         self._command.line('')
         self._command.line('<info>Installing dependencies</>')
         self._command.line('')
 
         command = InstallCommand()
-        for dep in sonnet.dependencies:
+        for dep in poet.dependencies:
             name = dep.name
 
             if dep.is_vcs_dependency():
@@ -42,21 +42,21 @@ class Installer(object):
 
             command.main(args)
 
-    def lock(self, sonnet, dev=True):
-        if sonnet.is_lock():
+    def lock(self, poet, dev=True):
+        if poet.is_lock():
             return
 
         self._command.line('')
-        self._command.line('<info>Locking dependencies to <comment>sonnet.lock</></>')
+        self._command.line('<info>Locking dependencies to <comment>poetry.lock</></>')
         self._command.line('')
-        deps = sonnet.pip_dependencies
+        deps = poet.pip_dependencies
 
         if dev:
-            deps += sonnet.pip_dev_dependencies
+            deps += poet.pip_dev_dependencies
 
         command = DownloadCommand()
 
-        dir = tempfile.mkdtemp(prefix='sonnet_')
+        dir = tempfile.mkdtemp(prefix='poet_')
 
         packages = {}
 
@@ -108,7 +108,7 @@ class Installer(object):
 
         shutil.rmtree(dir)
 
-        self._write_lock(sonnet, [packages[k] for k in sorted(list(packages.keys()))])
+        self._write_lock(poet, [packages[k] for k in sorted(list(packages.keys()))])
 
     def search_package(self, dir, package):
         package = self._repository.package_name(package)
@@ -149,11 +149,11 @@ class Installer(object):
             'path': package
         }
 
-    def _write_lock(self, sonnet, packages):
+    def _write_lock(self, poet, packages):
         output = {
             'root': {
-                'name': sonnet.name,
-                'version': sonnet.version
+                'name': poet.name,
+                'version': poet.version
             },
             'package': []
         }

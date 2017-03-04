@@ -1,7 +1,7 @@
 [package]
-name = "sonnet"
+name = "poet"
 version = "0.1.0"
-description = "Sonnet helps you declare, manage and install dependencies of PHP projects, ensuring you have the right stack everywhere."
+description = "Poet helps you declare, manage and install dependencies of PHP projects, ensuring you have the right stack everywhere."
 
 license = "MIT"
 
@@ -11,13 +11,13 @@ authors = [
 
 readme = 'README.rst'
 
-repository = "https://github.com/sdispater/sonnet"
-homepage = "https://sonnet.eustace.io"
-documentation = "https://sonnet.eustace.io/docs"
+repository = "https://github.com/sdispater/poet"
+homepage = "https://poet.eustace.io"
+documentation = "https://poet.eustace.io/docs"
 
-keywords = ['packaging', 'sonnet']
+keywords = ['packaging', 'poet']
 
-include = ['sonnet/**/*']
+include = ['poet/**/*']
 
 python = ["~2.7", "^3.2"]
 

@@ -19,7 +19,7 @@ setup(**kwargs)
 
 class Builder(object):
     """
-    Tool to transform a sonnet file to a setup() instruction.
+    Tool to transform a poet file to a setup() instruction.
     """
 
     AUTHOR_REGEX = re.compile('(?u)^(?P<name>[- .,\w\d\'’"()]+) <(?P<email>.+?)>$')
@@ -32,17 +32,17 @@ class Builder(object):
     def __init__(self):
         self._manifest = []
 
-    def build(self, sonnet, **options):
+    def build(self, poet, **options):
         """
-        Builds a sonnet.
+        Builds a poet.
 
-        :param sonnet: The sonnet to build.
-        :type sonnet: sonnet.sonnet.Sonnet
+        :param poet: The poet to build.
+        :type poet: poet.poet.Poet
         """
-        setup_kwargs = self._setup(sonnet, **options)
+        setup_kwargs = self._setup(poet, **options)
 
-        setup = os.path.join(sonnet.base_dir, 'setup.py')
-        manifest = os.path.join(sonnet.base_dir, 'MANIFEST.in')
+        setup = os.path.join(poet.base_dir, 'setup.py')
+        manifest = os.path.join(poet.base_dir, 'MANIFEST.in')
         self._write_setup(setup_kwargs, setup)
         self._write_manifest(manifest)
 
@@ -55,60 +55,60 @@ class Builder(object):
             os.unlink(setup)
             os.unlink(manifest)
 
-    def _setup(self, sonnet, **options):
+    def _setup(self, poet, **options):
         setup_kwargs = {
-            'name': sonnet.name,
-            'version': sonnet.version,
-            'description': sonnet.description,
-            'long_description': sonnet.readme,
+            'name': poet.name,
+            'version': poet.version,
+            'description': poet.description,
+            'long_description': poet.readme,
             'include_package_data': True,
             'script_name': 'setup.py'
         }
 
-        setup_kwargs.update(self._author(sonnet))
+        setup_kwargs.update(self._author(poet))
 
-        setup_kwargs['url'] = self._url(sonnet)
+        setup_kwargs['url'] = self._url(poet)
 
-        setup_kwargs['license'] = sonnet.license
+        setup_kwargs['license'] = poet.license
 
-        setup_kwargs['keywords'] = self._keywords(sonnet)
+        setup_kwargs['keywords'] = self._keywords(poet)
 
-        setup_kwargs['classifiers'] = self._classifiers(sonnet)
+        setup_kwargs['classifiers'] = self._classifiers(poet)
 
-        setup_kwargs['entry_points'] = self._entry_points(sonnet)
+        setup_kwargs['entry_points'] = self._entry_points(poet)
 
-        setup_kwargs['install_requires'] = self._install_requires(sonnet)
+        setup_kwargs['install_requires'] = self._install_requires(poet)
 
-        setup_kwargs.update(self._packages(sonnet))
+        setup_kwargs.update(self._packages(poet))
 
         return setup_kwargs
 
-    def _author(self, sonnet):
-        m = self.AUTHOR_REGEX.match(sonnet.authors[0])
+    def _author(self, poet):
+        m = self.AUTHOR_REGEX.match(poet.authors[0])
 
         return {
             'author': m.group('name'),
             'author_email': m.group('email')
         }
 
-    def _url(self, sonnet):
-        return sonnet.homepage or sonnet.repository
+    def _url(self, poet):
+        return poet.homepage or poet.repository
 
-    def _keywords(self, sonnet):
-        return ' '.join(sonnet.keywords or [])
+    def _keywords(self, poet):
+        return ' '.join(poet.keywords or [])
 
-    def _classifiers(self, sonnet):
+    def _classifiers(self, poet):
         classifiers = []
 
-        classifiers += self._classifiers_versions(sonnet)
+        classifiers += self._classifiers_versions(poet)
 
         return classifiers
 
-    def _classifiers_versions(self, sonnet):
+    def _classifiers_versions(self, poet):
         classifers = ['Programming Language :: Python']
         compatible_versions = {}
 
-        for python in sonnet.python_versions:
+        for python in poet.python_versions:
             constraint = Spec(python)
 
             for major in [2, 3]:
@@ -132,33 +132,33 @@ class Builder(object):
 
         return classifers
 
-    def _entry_points(self, sonnet):
+    def _entry_points(self, poet):
         entry_points = {
             'console_scripts': []
         }
 
-        for name, script in sonnet.scripts.items():
-            entry_points['console_scripts'].append('{}={}:{}'.format(name, sonnet.name, script))
+        for name, script in poet.scripts.items():
+            entry_points['console_scripts'].append('{}={}:{}'.format(name, poet.name, script))
 
         return entry_points
 
-    def _install_requires(self, sonnet):
+    def _install_requires(self, poet):
         requires = []
-        dependencies = sonnet.dependencies
+        dependencies = poet.dependencies
 
         for dependency in dependencies:
             requires.append(dependency.normalized_name)
 
         return requires
 
-    def _packages(self, sonnet):
-        includes = sonnet.include
+    def _packages(self, poet):
+        includes = poet.include
         packages = []
         modules = []
         crawled = []
         excluded = []
 
-        for exclude in sonnet.exclude + sonnet.ignore:
+        for exclude in poet.exclude + poet.ignore:
             for exc in glob.glob(exclude, recursive=True):
                 if exc.startswith('/'):
                     exc = exc[1:]

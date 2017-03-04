@@ -5,13 +5,13 @@ import os
 import toml
 import subprocess
 
-from .exceptions.sonnet import MissingElement, InvalidElement
+from .exceptions.poet import MissingElement, InvalidElement
 from .version_parser import VersionParser
 from .build import Builder
 from .package import Dependency, PipDependency
 
 
-class Sonnet(object):
+class Poet(object):
 
     EXCLUDES = ()
     INCLUDES = ()
@@ -155,7 +155,7 @@ class Sonnet(object):
 
     @property
     def lock_file(self):
-        return os.path.join(self._dir, 'sonnet.lock')
+        return os.path.join(self._dir, 'poetry.lock')
 
     @property
     def lock(self):

@@ -15,10 +15,10 @@ class PackageCommand(Command):
     """
 
     def handle(self):
-        sonnet = self.sonnet
+        poet = self.poet
 
         if self.option('clean'):
-            egg_info = os.path.join(sonnet.base_dir, '{}.egg-info'.format(sonnet.name))
+            egg_info = os.path.join(poet.base_dir, '{}.egg-info'.format(poet.name))
 
             if os.path.exists(egg_info):
                 shutil.rmtree(egg_info)
@@ -26,9 +26,9 @@ class PackageCommand(Command):
         fmt = 'tar.gz'
 
         self.line('')
-        self.line('<info>Building <comment>{}.{}</></>'.format(sonnet.name, fmt))
+        self.line('<info>Building <comment>{}.{}</></>'.format(poet.name, fmt))
 
-        sonnet.build()
+        poet.build()
 
-        self.line('<info><comment>{}.{}</> built!</>'.format(sonnet.name, fmt))
+        self.line('<info><comment>{}.{}</> built!</>'.format(poet.name, fmt))
         self.line('')

@@ -16,7 +16,7 @@ from ...build import Builder
 
 class InitCommand(Command):
     """
-    Creates a basic <comment>sonnet.toml</> file in current directory.
+    Creates a basic <comment>poetry.toml</> file in current directory.
 
     init
         {--name= : Name of the package}
@@ -30,10 +30,10 @@ class InitCommand(Command):
     """
 
     help = """
-The <info>init</info> command creates a basic <comment>sonnet.toml</> file
+The <info>init</info> command creates a basic <comment>poetry.toml</> file
 in the current directory.
 
-<info>sonnet init</info>
+<info>poet init</info>
 """
     def __init__(self):
         self._git_config = None
@@ -45,22 +45,22 @@ in the current directory.
 
         self.line([
             '',
-            formatter.format_block('Welcome to the Sonnet config generator', 'bg=blue;fg=white', True),
+            formatter.format_block('Welcome to the Poet config generator', 'bg=blue;fg=white', True),
             ''
         ])
 
         self.line([
             '',
-            'This command will guide you through creating your <info>sonnet.toml</> config.',
+            'This command will guide you through creating your <info>poetry.toml</> config.',
             ''
         ])
 
-        sonnet_file = self.sonnet_file
+        poet_file = self.poet_file
         git_config = self.git_config()
 
         name = self.option('name')
         if not name:
-            name = os.path.basename(os.path.dirname(sonnet_file))
+            name = os.path.basename(os.path.dirname(poet_file))
             name = name.lower()
 
         question = self.create_question(
@@ -192,7 +192,7 @@ in the current directory.
 
                 return 1
 
-            with open(self.sonnet_file, 'w') as fd:
+            with open(self.poet_file, 'w') as fd:
                 fd.write(output)
 
     def _determine_requirements(self, requires):
@@ -314,4 +314,4 @@ in the current directory.
         return parser.parse_name_version_pairs(requirements)
 
     def git_config(self):
-        return self.sonnet.git_config
+        return self.poet.git_config

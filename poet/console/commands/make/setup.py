@@ -23,9 +23,9 @@ class MakeSetupCommand(Command):
     """
 
     def handle(self):
-        sonnet = self.sonnet
+        poet = self.poet
         builder = Builder()
 
-        setup = builder._setup(sonnet)
+        setup = builder._setup(poet)
 
-        builder._write_setup(setup, os.path.join(os.path.dirname(self.sonnet_file), 'setup.py'))
+        builder._write_setup(setup, os.path.join(os.path.dirname(self.poet_file), 'setup.py'))

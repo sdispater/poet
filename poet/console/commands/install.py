@@ -7,7 +7,7 @@ from .command import Command
 
 class InstallCommand(Command):
     """
-    Install and lock dependencies specified in sonnet.toml file.
+    Install and lock dependencies specified in poetry.toml file.
 
     install
         {--no-dev : Do not install dev dependencies}
@@ -19,8 +19,8 @@ class InstallCommand(Command):
         installer = Installer(self, self._repository)
 
         if self.has_lock():
-            sonnet = self.sonnet.lock
+            poet = self.poetry.lock
         else:
-            sonnet = self.sonnet
+            poet = self.poet
 
-        installer.install(sonnet, dev=dev)
+        installer.install(poet, dev=dev)

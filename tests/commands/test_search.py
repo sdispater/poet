@@ -3,7 +3,7 @@
 import httpretty
 
 from cleo import CommandTester
-from sonnet.console import Application
+from poet.console import Application
 
 
 RESULTS_RESPONSE = """<?xml version='1.0'?>

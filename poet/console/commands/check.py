@@ -5,7 +5,7 @@ from .command import Command
 
 class CheckCommand(Command):
     """
-    Check the sonnet.toml file.
+    Check the poetry.toml file.
 
     check
     """
@@ -13,6 +13,6 @@ class CheckCommand(Command):
     def handle(self):
         self.line('')
 
-        self.sonnet.check()
+        self.poet.check()
 
-        self.info('The <comment>sonnet.toml</> file is valid!')
+        self.info('The <comment>poetry.toml</> file is valid!')

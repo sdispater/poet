@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from sonnet.package.dependency import Dependency
+from poet.package.dependency import Dependency
 
 
 def test_normalized_caret():

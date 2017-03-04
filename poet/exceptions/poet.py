@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
 
-class SonnetFileError(Exception):
+class PoetFileError(Exception):
 
     pass
 
 
-class MissingElement(SonnetFileError):
+class MissingElement(PoetFileError):
 
     def __init__(self, element):
         super(MissingElement, self).__init__(
@@ -14,7 +14,7 @@ class MissingElement(SonnetFileError):
         )
 
 
-class InvalidElement(SonnetFileError):
+class InvalidElement(PoetFileError):
 
     def __init__(self, element, extra_info=''):
         msg = 'The element [{}] is invalid'.format(element)

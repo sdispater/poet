@@ -21,4 +21,5 @@ nosetests.xml
 .idea/*
 
 # Projects specifics
+/setup.py
 /app.py
