@@ -19,6 +19,28 @@ class Dependency(object):
         return self._constraint
 
     @property
+    def pretty_constraint(self):
+        constraint = self._constraint
+
+        if self.is_vcs_dependency():
+            if 'git' in self._constraint:
+                vcs_kind = 'branch'
+                if 'rev' in self._constraint:
+                    vcs_kind = 'rev'
+                    version = self._constraint['rev']
+                elif 'tag' in constraint:
+                    vcs_kind = 'tag'
+                    version = self._constraint['tag']
+                else:
+                    version = self._constraint['branch']
+
+                constraint = '{} {}'.format(vcs_kind, version)
+            else:
+                raise ValueError('Unsupport VCS.')
+
+        return constraint
+
+    @property
     def normalized_constraint(self):
         return self._normalized_constraint
     
@@ -32,10 +54,12 @@ class Dependency(object):
 
         return normalized_name
 
+    def is_vcs_dependency(self):
+        return isinstance(self._constraint, dict)
+
     def _normalize(self, constraint):
-        if isinstance(constraint, dict):
-            # Neither setuptools nor distutils support VCS constraint
-            return
+        if self.is_vcs_dependency():
+            return self._normalize_vcs_constraint(constraint)
 
         constraint = Spec(constraint)
         normalized = []
@@ -69,13 +93,6 @@ class Dependency(object):
         return ','.join(normalized)
 
     def _normalize_vcs_constraint(self, constraint):
-        if 'git' in constraint:
-            repo = constraint['git']
-            if 'branch' in constraint:
-                revision = constraint['branch']
-            elif 'tag' in constraint:
-                revision = constraint['tag']
-            else:
-                revision = constraint['rev']
-
-            return '{}@{}#egg={}'.format(repo, revision, self._name)
+        # Neither setuptools nor distutils support VCS constraint
+        # So by default we return nothing
+        return

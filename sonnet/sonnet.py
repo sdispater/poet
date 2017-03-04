@@ -8,7 +8,7 @@ import subprocess
 from .exceptions.sonnet import MissingElement, InvalidElement
 from .version_parser import VersionParser
 from .build import Builder
-from .package import Dependency
+from .package import Dependency, PipDependency
 
 
 class Sonnet(object):
@@ -21,13 +21,29 @@ class Sonnet(object):
         self._dir = os.path.dirname(path)
         self._builder = builder
         self._git_config = None
-        self._dependencies = None
-        self._dev_dependencies = None
+
+        self._name = None
+        self._version = None
+        self._description = None
+        self._authors = []
+        self._homepage = None
+        self._repository = None
+        self._keywords = []
+        self._python_versions = []
+        self._dependencies = []
+        self._dev_dependencies = []
+        self._pip_dependencies = []
+        self._pip_dev_dependencies = []
+        self._scripts = {}
+        self._license = None
+        self._readme = None
+        self._include = []
+        self._exclude = []
 
         with open(self._path) as f:
             self._config = toml.loads(f.read())
 
-        self._readme = None
+        self.load()
 
     @property
     def base_dir(self):
@@ -40,7 +56,7 @@ class Sonnet(object):
 
         config_list = subprocess.check_output(
             ['git', 'config', '-l']
-        )
+        ).decode()
 
         self._git_config = {}
 
@@ -71,73 +87,110 @@ class Sonnet(object):
 
     @property
     def name(self):
-        return self._config['package']['name']
+        return self._name
 
     @property
     def version(self):
-        return self._config['package']['version']
+        return self._version
 
     @property
     def description(self):
-        return self._config['package']['description']
+        return self._description
 
     @property
     def authors(self):
-        return self._config['package']['authors']
+        return self._authors
 
     @property
     def homepage(self):
-        return self._config['package'].get('homepage')
+        return self._homepage
 
     @property
     def repository(self):
-        return self._config['package'].get('repository')
+        return self._repository
 
     @property
     def keywords(self):
-        return self._config['package'].get('keywords', [])
+        return self._keywords
 
     @property
     def python_versions(self):
-        return self._config['package']['python']
+        return self._python_versions
 
     @property
     def dependencies(self):
-        if self._dependencies is None:
-            self._dependencies = self._get_dependencies(self._config.get('dependencies', {}))
-
         return self._dependencies
 
     @property
     def dev_dependencies(self):
-        if self._dev_dependencies is None:
-            self._dev_dependencies = self._get_dependencies(self._config.get('dev-dependencies', {}))
-
         return self._dev_dependencies
 
     @property
+    def pip_dependencies(self):
+        return self._pip_dependencies
+
+    @property
+    def pip_dev_dependencies(self):
+        return self._pip_dev_dependencies
+
+    @property
     def scripts(self):
-        return self._config.get('scripts', {})
+        return self._scripts
 
     @property
     def license(self):
-        return self._config['package'].get('license')
+        return self._license
 
     @property
     def readme(self):
-        if self._readme is None:
-            with open(os.path.join(self._dir, self._config['package']['readme'])) as f:
-                self._readme = f.read()
-
         return self._readme
 
     @property
     def include(self):
-        return self._config['package'].get('include', []) + list(self.INCLUDES)
+        return self._include
 
     @property
     def exclude(self):
-        return self._config['package'].get('exclude', []) + list(self.EXCLUDES)
+        return self._exclude
+
+    @property
+    def lock_file(self):
+        return os.path.join(self._dir, 'sonnet.lock')
+
+    @property
+    def lock(self):
+        from .lock import Lock
+
+        return Lock(self.lock_file)
+
+    @property
+    def path(self):
+        return self._path
+
+    def load(self):
+        self._name = self._config['package']['name']
+        self._version = self._config['package']['version']
+        self._description = self._config['package']['description']
+        self._authors = self._config['package']['authors']
+        self._license = self._config['package'].get('license')
+        self._homepage = self._config['package'].get('homepage')
+        self._repository = self._config['package'].get('repository')
+        self._keywords = self._config['package'].get('keywords', [])
+        self._python_versions = self._config['package']['python']
+        self._dependencies = self._get_dependencies(self._config.get('dependencies', {}))
+        self._dev_dependencies = self._get_dependencies(self._config.get('dev-dependencies', {}))
+        self._pip_dependencies = self._get_dependencies(self._config.get('dependencies', {}), 'pip')
+        self._pip_dev_dependencies = self._get_dependencies(self._config.get('dev-dependencies', {}), 'pip')
+        self._scripts = self._config.get('scripts', {})
+
+        with open(os.path.join(self._dir, self._config['package']['readme'])) as f:
+            self._readme = f.read()
+
+        self._include = self._config['package'].get('include', []) + list(self.INCLUDES)
+        self._exclude = self._config['package'].get('exclude', []) + list(self.EXCLUDES)
+
+    def is_lock(self):
+        return False
 
     def build(self, **options):
         self.check()
@@ -227,7 +280,11 @@ class Sonnet(object):
                 'Git constraint should have one of [branch, rev, tag]'
             )
 
-    def _get_dependencies(self, dependencies):
+    def _get_dependencies(self, dependencies, kind='default'):
         keys = sorted(list(dependencies.keys()))
 
-        return [Dependency(k, dependencies[k]) for k in keys]
+        klass = Dependency
+        if kind == 'pip':
+            klass = PipDependency
+
+        return [klass(k, dependencies[k]) for k in keys]

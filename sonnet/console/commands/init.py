@@ -228,19 +228,24 @@ in the current directory.
                 for found_package in matches:
                     choices.append(found_package['name'])
 
-                self.line(
-                    'Found <info>{}</info> packages matching <info>{}</info>'
-                    .format(
-                        len(matches),
-                        package
-                    )
-                )
+                    if found_package['name'] == package:
+                        exact_match = True
+                        break
 
-                package = self.choice(
-                    '\nEnter package # to add, or the complete package name if it is not listed: ',
-                    choices,
-                    attempts=3
-                )
+                if not exact_match:
+                    self.line(
+                        'Found <info>{}</info> packages matching <info>{}</info>'
+                        .format(
+                            len(matches),
+                            package
+                        )
+                    )
+
+                    package = self.choice(
+                        '\nEnter package # to add, or the complete package name if it is not listed: ',
+                        choices,
+                        attempts=3
+                    )
 
             # no constraint yet, determine the best version automatically
             if package is not False and ' ' not in package:

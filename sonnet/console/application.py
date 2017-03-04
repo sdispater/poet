@@ -7,7 +7,10 @@ from .commands import (
     AboutCommand,
     CheckCommand,
     InitCommand,
+    InstallCommand,
+    LockCommand,
     PackageCommand,
+    RequireCommand,
     SearchCommand
 )
 from .commands.make import MakeSetupCommand
@@ -28,7 +31,10 @@ class Application(BaseApplication):
             AboutCommand(),
             CheckCommand(),
             InitCommand(),
+            InstallCommand(),
+            LockCommand(),
             MakeSetupCommand(),
             PackageCommand(),
+            RequireCommand(),
             SearchCommand(),
         ]

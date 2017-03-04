@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import requests
 from pip.models import PyPI
 from xmlrpc.client import ServerProxy
 
@@ -61,3 +62,17 @@ class PyPiRepository(object):
             })
 
         return results
+
+    def package_name(self, name):
+        url = 'https://pypi.python.org/pypi/{}/json'.format(name)
+
+        response = requests.get(url)
+
+        if response.status_code == 404:
+            raise Exception('Package [{}] not found'.format(name))
+
+        response.raise_for_status()
+
+        info = response.json()['info']
+
+        return info['name']

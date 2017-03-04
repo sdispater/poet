@@ -177,8 +177,6 @@ class Builder(object):
 
                 # We have a package
                 if os.path.exists(os.path.join(dir, '__init__.py')):
-                    #packages.append(dir.rstrip('/').replace('/', '.'))
-
                     children = [
                         c.replace('.py', '').replace('/', '.')
                         for c in glob.glob(os.path.join(dir, '*.py'))
