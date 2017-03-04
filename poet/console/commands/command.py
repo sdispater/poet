@@ -16,6 +16,7 @@ class Command(BaseCommand):
 
         self._poet = None
         self._repository = PyPiRepository()
+        self._virtual_env = None
 
     @property
     def poet_file(self):
@@ -35,7 +36,11 @@ class Command(BaseCommand):
 
     @property
     def lock_file(self):
-        return self.poetry.lock_file
+        return self.poet.lock_file
+
+    @property
+    def virtual_env(self):
+        return self._virtual_env
 
     def has_lock(self):
         return os.path.exists(self.lock_file)
@@ -87,15 +92,15 @@ class Command(BaseCommand):
             self.line('Using virtualenv <comment>{}</>'.format(os.environ['VIRTUAL_ENV']))
 
         if sys.platform == "win32":
-            virtual_env = os.path.join(os.environ['VIRTUAL_ENV'], 'Lib', 'site-packages')
+            self._virtual_env = os.path.join(os.environ['VIRTUAL_ENV'], 'Lib', 'site-packages')
         else:
-            virtual_env = os.path.join(
+            self._virtual_env = os.path.join(
                 os.environ['VIRTUAL_ENV'], 'lib',
                 'python{}.{}'.format(*sys.version_info[:2]),
                 'site-packages'
             )
 
         import site
-        sys.path.insert(0, virtual_env)
+        sys.path.insert(0, self._virtual_env)
 
-        site.addsitedir(virtual_env)
+        site.addsitedir(self._virtual_env)

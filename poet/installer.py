@@ -22,7 +22,7 @@ class Installer(object):
         if not poet.is_lock():
             self.lock(poet, dev=dev)
 
-            return self.install(poetry.lock, dev=dev)
+            return self.install(poet.lock, dev=dev)
 
         self._command.line('')
         self._command.line('<info>Installing dependencies</>')
@@ -38,7 +38,11 @@ class Installer(object):
                 constraint = dep.normalized_constraint.replace('==', '')
 
             self._command.line('  - Installing <info>{}</> (<comment>{}</>)'.format(name, constraint))
-            args = [name, '-q']
+            args = [name]
+            if self._command.virtual_env:
+                args.append('--target={}'.format(self._command.virtual_env))
+
+            args.append('-q')
 
             command.main(args)
 
