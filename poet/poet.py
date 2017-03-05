@@ -39,6 +39,7 @@ class Poet(object):
         self._readme = None
         self._include = []
         self._exclude = []
+        self._extensions = {}
 
         with open(self._path) as f:
             self._config = toml.loads(f.read())
@@ -76,7 +77,11 @@ class Poet(object):
         ignore = []
 
         for filename in ignore_files:
-            with open(os.path.join(self._dir, filename)) as fd:
+            filepath = os.path.join(self._dir, filename)
+            if not os.path.exists(filepath):
+                continue
+
+            with open(filepath) as fd:
                 for line in fd.readlines():
                     if re.match('^\s*#.*$', line):
                         continue
@@ -154,6 +159,10 @@ class Poet(object):
         return self._exclude
 
     @property
+    def extensions(self):
+        return self._extensions
+
+    @property
     def lock_file(self):
         return os.path.join(self._dir, 'poetry.lock')
 
@@ -188,6 +197,8 @@ class Poet(object):
 
         self._include = self._config['package'].get('include', []) + list(self.INCLUDES)
         self._exclude = self._config['package'].get('exclude', []) + list(self.EXCLUDES)
+
+        self._extensions = self._config.get('extensions', {})
 
     def is_lock(self):
         return False

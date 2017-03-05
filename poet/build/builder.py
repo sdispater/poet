@@ -3,18 +3,47 @@
 import os
 import re
 import glob
-import tempfile
 
+from setuptools import Extension
 from setuptools.dist import Distribution
+
 from semantic_version import Spec, Version
 
 
 SETUP_TEMPLATE = """from setuptools import setup
 
-kwargs = {}
-
-setup(**kwargs)
+kwargs = dict(
+    name={name},
+    version={version},
+    description={description},
+    long_description={long_description},
+    author={author},
+    author_email={author_email},
+    url={url},
+    license={license},
+    keywords={keywords},
+    classifers={classifiers},
+    entry_points={entry_points},
+    install_requires={install_requires},
+    packages={packages},
+    py_modules={py_modules},
+    script_name='setup.py',
+    include_package_data=True
+)
 """
+
+EXTENSIONS_TEMPLATE = """
+from setuptools import Extension
+
+kwargs['ext_modules'] = [
+    {extensions}
+]
+"""
+
+EXTENSION_TEMPLATE = """Extension(
+        '{module}',
+        {source}
+    )"""
 
 
 class Builder(object):
@@ -80,6 +109,9 @@ class Builder(object):
         setup_kwargs['install_requires'] = self._install_requires(poet)
 
         setup_kwargs.update(self._packages(poet))
+
+        # Extensions
+        setup_kwargs.update(self._ext_modules(poet))
 
         return setup_kwargs
 
@@ -171,19 +203,32 @@ class Builder(object):
             dirs = [d for d in elements if os.path.isdir(d)]
             others = [d for d in elements if not os.path.isdir(d)]
 
+            m = re.match('^(.+)/\*\*/\*(\..+)?$', include)
+            if m:
+                # {dir}/**/* will not take the root directory
+                # So we add it
+                dirs.insert(0, m.group(1))
+
             for dir in dirs:
+                package = dir.replace('/', '.')
+
                 if dir in crawled:
                     continue
 
                 # We have a package
                 if os.path.exists(os.path.join(dir, '__init__.py')):
                     children = [
-                        c.replace('.py', '').replace('/', '.')
-                        for c in glob.glob(os.path.join(dir, '*.py'))
-                        if os.path.basename(c) != '__init__.py'
+                        c for c in glob.glob(os.path.join(dir, '*.py'))
                     ]
 
-                    modules += children
+                    filtered_children = [c for c in children if c not in excluded]
+                    if children == filtered_children:
+                        # If none of the children are excluded
+                        # We have a full package
+                        packages.append(package)
+                    else:
+                        modules += [c.replace('/', '.') for c in filtered_children]
+
                     crawled += children
 
                 crawled.append(dir)
@@ -197,6 +242,19 @@ class Builder(object):
                 elif os.path.basename(element) != '__init__.py' and '__pycache__' not in element:
                     # Non Python file, add them to data
                     self._manifest.append('include {}'.format(element))
+                elif os.path.basename(element) == '__init__.py':
+                    dir = os.path.dirname(element)
+                    children = [
+                        c
+                        for c in glob.glob(os.path.join(dir, '*.py'))
+                        if os.path.basename(c) != '__init__.py'
+                    ]
+
+                    if not children and dir not in crawled:
+                        # We actually have a package
+                        packages.append(dir.replace('/', '.'))
+
+                        crawled.append(dir)
 
                 crawled.append(element)
 
@@ -208,9 +266,50 @@ class Builder(object):
             'py_modules': modules
         }
 
+    def _ext_modules(self, poet):
+        extensions = []
+        for module, source in poet.extensions.items():
+            if not isinstance(source, list):
+                source = [source]
+
+            ext = Extension(module, source)
+            extensions.append(ext)
+
+        return {
+            'ext_modules': extensions
+        }
+
     def _write_setup(self, setup, dest):
+        parameters = setup.copy()
+
+        extensions = []
+        if parameters['ext_modules']:
+            for extension in parameters['ext_modules']:
+                module = extension.name
+                source = extension.sources
+
+                extensions.append(
+                    EXTENSION_TEMPLATE.format(
+                        module=module,
+                        source=repr(source)
+                    )
+                )
+
+            del parameters['ext_modules']
+
+        for key in parameters.keys():
+            value = parameters[key]
+
+            if value is not None:
+                parameters[key] = repr(value)
+
         with open(dest, 'w') as f:
-            f.write(SETUP_TEMPLATE.format(repr(setup)))
+            f.write(SETUP_TEMPLATE.format(**parameters))
+
+            if extensions:
+                f.write(EXTENSIONS_TEMPLATE.format(extensions='\n    '.join(extensions)))
+
+            f.write('\nsetup(**kwargs)')
 
     def _write_manifest(self, manifest):
         with open(manifest, 'w') as f:
