@@ -4,6 +4,12 @@ import re
 import os
 import toml
 import subprocess
+import warnings
+
+try:
+    import pypandoc
+except ImportError:
+    pypandoc = None
 
 from .exceptions.poet import MissingElement, InvalidElement
 from .version_parser import VersionParser
@@ -195,13 +201,39 @@ class Poet(object):
         self._pip_dev_dependencies = self._get_dependencies(self._config.get('dev-dependencies', {}), 'pip')
         self._scripts = self._config.get('scripts', {})
 
-        with open(os.path.join(self._dir, self._config['package']['readme'])) as f:
-            self._readme = f.read()
+        self._load_readme()
 
         self._include = self._config['package'].get('include', []) + list(self.INCLUDES)
         self._exclude = self._config['package'].get('exclude', []) + list(self.EXCLUDES)
 
         self._extensions = self._config.get('extensions', {})
+
+    def _load_readme(self):
+        readme = self._config['package']['readme']
+        readme_path = os.path.join(self._dir, readme)
+
+        if self.has_markdown_readme():
+            if not pypandoc:
+                warnings.warn(
+                    'Markdown README files require the pandoc utility '
+                    'and the pypandoc package.'
+                )
+            else:
+                self._readme = pypandoc.convert_file(readme_path, 'rst')
+        else:
+            with open(readme_path) as f:
+                self._readme = f.read()
+
+    def has_markdown_readme(self):
+        """
+        Return whether the README is a markdown one.
+
+        :rtype: boolean
+        """
+        readme = self._config['package']['readme']
+        _, ext = os.path.splitext(readme)
+
+        return ext == '.md'
 
     def is_lock(self):
         return False

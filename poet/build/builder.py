@@ -75,6 +75,14 @@ class Builder(object):
         self._write_setup(setup_kwargs, setup)
         self._write_manifest(manifest)
 
+        readme = None
+        if poet.has_markdown_readme():
+            readme = os.path.join(poet.base_dir, 'README.rst')
+            if os.path.exists(readme):
+                readme = None
+            else:
+                self._write_readme(readme, setup_kwargs['long_description'])
+
         try:
             dist = Distribution(setup_kwargs)
             dist.run_command('sdist')
@@ -83,6 +91,9 @@ class Builder(object):
         finally:
             os.unlink(setup)
             os.unlink(manifest)
+
+            if readme:
+                os.unlink(readme)
 
     def _setup(self, poet, **options):
         setup_kwargs = {
@@ -314,3 +325,8 @@ class Builder(object):
     def _write_manifest(self, manifest):
         with open(manifest, 'w') as f:
             f.writelines(self._manifest)
+
+    def _write_readme(self, readme, content):
+        with open(readme, 'w') as f:
+            f.write(content)
+

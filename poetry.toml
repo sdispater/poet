@@ -9,7 +9,7 @@ authors = [
     "Sébastien Eustace <sebastien@eustace.io>"
 ]
 
-readme = 'README.rst'
+readme = 'README.md'
 
 repository = "https://github.com/sdispater/poet"
 homepage = "https://poet.eustace.io"
