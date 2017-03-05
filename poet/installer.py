@@ -3,6 +3,7 @@
 import tempfile
 import shutil
 import zipfile
+import subprocess
 import toml
 
 import os
@@ -88,72 +89,6 @@ class Installer(object):
 
         self._write_lock(poet, [packages[k] for k in sorted(list(packages.keys()))])
 
-    def __lock_dependencies(self, packages, deps, dest, category='default'):
-        command = DownloadCommand()
-
-        # Creating temporary requirements.txt file
-        fd, requirements = tempfile.mkstemp('.txt', 'poet_requirements')
-        os.close(fd)
-
-        vcs_deps = []
-
-        with open(requirements, 'w') as f:
-            for dep in deps:
-                f.writelines(dep.normalized_name + '\n')
-
-                if dep.is_vcs_dependency():
-                    vcs_deps.append(dep)
-
-        args = ['-r', requirements, '--dest={}'.format(dest), '-q']
-
-        command.main(args)
-
-        os.unlink(requirements)
-
-        for dep in vcs_deps:
-            # Searching for package and getting information
-            package = self.search_package(dest, dep)
-
-            # Retrieving revision to locked to
-            vcs_kind = 'rev'
-            if 'rev' in dep.constraint:
-                vcs_kind = 'rev'
-                version = dep.constraint['rev']
-            elif 'tag' in dep.constraint:
-                vcs_kind = 'tag'
-                version = dep.constraint['tag']
-            else:
-                archive = zipfile.ZipFile(package['path'])
-                revision = archive.read(
-                    '{}/.git/refs/heads/{}'.format(
-                        package['name'],
-                        dep.constraint['branch']
-                    )
-                ).strip().decode()
-                version = revision
-
-            package['version'] = {
-                'git': dep.constraint['git'],
-                vcs_kind: version
-            }
-
-        for package in glob.glob(os.path.join(dest, '*')):
-            package = self.get_package(package, existing=packages)
-
-            if 'category' not in package:
-                package['category'] = category
-
-            if package['name'] in packages and packages[package['name']]['version'] != package['version']:
-                # We found conflicting versions
-                raise Exception('Conflict for package [{}]')
-
-            packages[package['name']] = package
-
-            self._command.line(' - Locked <info>{}</> to <comment>{}</>'.format(
-                package['name'],
-                package['version'])
-            )
-
     def _lock_dependencies(self, packages, deps, dest, category='default'):
         command = DownloadCommand()
 
@@ -176,13 +111,18 @@ class Installer(object):
                     vcs_kind = 'tag'
                     version = dep.constraint['tag']
                 else:
+                    # A branch has been specified
+                    # so we have to find the revision to lock to
+                    src_dir = tempfile.mkdtemp(prefix='poet_{}_'.format(package['name']))
+
                     archive = zipfile.ZipFile(package['path'])
-                    revision = archive.read(
-                        '{}/.git/refs/heads/{}'.format(
-                            package['name'],
-                            dep.constraint['branch']
-                        )
-                    ).strip().decode()
+                    archive.extractall(src_dir)
+
+                    os.chdir(os.path.join(src_dir, package['name']))
+                    subprocess.check_output(['git', 'checkout', dep.constraint['branch']])
+
+                    revision = subprocess.check_output(['git', 'rev-parse', dep.constraint['branch']])
+                    revision = revision.decode().strip()
                     version = revision
 
                 version_output = '{} {}'.format(vcs_kind, version)

@@ -11,7 +11,7 @@ class PackageCommand(Command):
     Builds the package.
 
     package
-        { --c|clean : MAke a clean package. }
+        { --c|clean : Make a clean package. }
     """
 
     def handle(self):
