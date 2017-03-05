@@ -8,3 +8,4 @@ from .lock import LockCommand
 from .package import PackageCommand
 from .require import RequireCommand
 from .search import SearchCommand
+from .update import UpdateCommand

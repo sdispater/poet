@@ -11,7 +11,8 @@ from .commands import (
     LockCommand,
     PackageCommand,
     RequireCommand,
-    SearchCommand
+    SearchCommand,
+    UpdateCommand
 )
 from .commands.make import MakeSetupCommand
 
@@ -37,4 +38,5 @@ class Application(BaseApplication):
             PackageCommand(),
             RequireCommand(),
             SearchCommand(),
+            UpdateCommand()
         ]
