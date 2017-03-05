@@ -177,6 +177,9 @@ class Poet(object):
         return self._path
 
     def load(self):
+        """
+        Load data from the config.
+        """
         self._name = self._config['package']['name']
         self._version = self._config['package']['version']
         self._description = self._config['package']['description']
@@ -209,6 +212,9 @@ class Poet(object):
         self._builder.build(self, **options)
 
     def check(self):
+        """
+        Checks if the poetry.toml file is valid.
+        """
         package = self._config.get('package')
         if not package:
             raise MissingElement('package')
@@ -224,12 +230,10 @@ class Poet(object):
             self._check_dependencies(dev_dependencies)
 
     def _check_package(self, package):
-        name = package.get('name')
-        if not name:
+        if 'name' not in package:
             raise MissingElement('package.name')
 
-        version = package.get('version')
-        if not version:
+        if 'version' not in package:
             raise MissingElement('package.version')
 
         authors = package.get('authors')

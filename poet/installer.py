@@ -29,7 +29,13 @@ class Installer(object):
         self._command.line('')
 
         command = InstallCommand()
-        for dep in poet.dependencies:
+
+        deps = poet.pip_dependencies
+
+        if dev:
+            deps += poet.pip_dev_dependencies
+
+        for dep in deps:
             name = dep.name
 
             if dep.is_vcs_dependency():
@@ -55,22 +61,109 @@ class Installer(object):
         self._command.line('')
         deps = poet.pip_dependencies
 
-        if dev:
-            deps += poet.pip_dev_dependencies
+        dest = tempfile.mkdtemp(prefix='poet_')
 
+        try:
+            packages = {}
+
+            self._lock_dependencies(packages, deps, dest)
+
+            if dev:
+                # Emptying dir before checking dev dependencies
+                for filename in os.listdir(dest):
+                    filepath = os.path.join(dest, filename)
+
+                    if os.path.isfile(filepath):
+                        os.unlink(filepath)
+
+                self._lock_dependencies(
+                    packages,
+                    poet.pip_dev_dependencies, dest,
+                    category='dev'
+                )
+        except Exception:
+            raise
+        finally:
+            shutil.rmtree(dest)
+
+        self._write_lock(poet, [packages[k] for k in sorted(list(packages.keys()))])
+
+    def __lock_dependencies(self, packages, deps, dest, category='default'):
         command = DownloadCommand()
 
-        dir = tempfile.mkdtemp(prefix='poet_')
+        # Creating temporary requirements.txt file
+        fd, requirements = tempfile.mkstemp('.txt', 'poet_requirements')
+        os.close(fd)
 
-        packages = {}
+        vcs_deps = []
+
+        with open(requirements, 'w') as f:
+            for dep in deps:
+                f.writelines(dep.normalized_name + '\n')
+
+                if dep.is_vcs_dependency():
+                    vcs_deps.append(dep)
+
+        args = ['-r', requirements, '--dest={}'.format(dest), '-q']
+
+        command.main(args)
+
+        os.unlink(requirements)
+
+        for dep in vcs_deps:
+            # Searching for package and getting information
+            package = self.search_package(dest, dep)
+
+            # Retrieving revision to locked to
+            vcs_kind = 'rev'
+            if 'rev' in dep.constraint:
+                vcs_kind = 'rev'
+                version = dep.constraint['rev']
+            elif 'tag' in dep.constraint:
+                vcs_kind = 'tag'
+                version = dep.constraint['tag']
+            else:
+                archive = zipfile.ZipFile(package['path'])
+                revision = archive.read(
+                    '{}/.git/refs/heads/{}'.format(
+                        package['name'],
+                        dep.constraint['branch']
+                    )
+                ).strip().decode()
+                version = revision
+
+            package['version'] = {
+                'git': dep.constraint['git'],
+                vcs_kind: version
+            }
+
+        for package in glob.glob(os.path.join(dest, '*')):
+            package = self.get_package(package, existing=packages)
+
+            if 'category' not in package:
+                package['category'] = category
+
+            if package['name'] in packages and packages[package['name']]['version'] != package['version']:
+                # We found conflicting versions
+                raise Exception('Conflict for package [{}]')
+
+            packages[package['name']] = package
+
+            self._command.line(' - Locked <info>{}</> to <comment>{}</>'.format(
+                package['name'],
+                package['version'])
+            )
+
+    def _lock_dependencies(self, packages, deps, dest, category='default'):
+        command = DownloadCommand()
 
         for dep in deps:
             self._command.write('  - Locking <info>{}</>'.format(dep.name))
 
-            command.main(['{}'.format(dep.normalized_name), '--dest={}'.format(dir), '-q'])
+            command.main(['{}'.format(dep.normalized_name), '--dest={}'.format(dest), '-q'])
 
             # Searching for package and getting information
-            package = self.search_package(dir, dep.name)
+            package = self.search_package(dest, dep)
             version_output = package['version']
 
             if dep.is_vcs_dependency():
@@ -106,16 +199,20 @@ class Installer(object):
 
             packages[package['name']] = package
 
-        for package in glob.glob(os.path.join(dir, '*')):
+        for package in glob.glob(os.path.join(dest, '*')):
             package = self.get_package(package, existing=packages)
+
+            if package['name'] in packages and packages[package['name']]['version'] != package['version']:
+                # We found conflicting versions
+                raise Exception('Conflict for package [{}]'.format(package['name']))
+
+            if 'category' not in packages:
+                package['category'] = category
+
             packages[package['name']] = package
 
-        shutil.rmtree(dir)
-
-        self._write_lock(poet, [packages[k] for k in sorted(list(packages.keys()))])
-
-    def search_package(self, dir, package):
-        package = self._repository.package_name(package)
+    def search_package(self, dir, dependency):
+        package = self._repository.package_name(dependency.name)
         packages = glob.glob(os.path.join(dir, '{}*'.format(package)))
 
         if not packages:
@@ -166,7 +263,8 @@ class Installer(object):
             output['package'].append({
                 'name': package['name'],
                 'version': package['version'],
-                'checksum': package['checksum']
+                'checksum': package['checksum'],
+                'category': package['category']
             })
 
         with open(self._command.lock_file, 'w') as f:
