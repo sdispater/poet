@@ -66,23 +66,74 @@ be installed globally and used everywhere.
 ## Commands
 
 
-### `poet init`
+### init
 
 This command will help you create a `poetry.toml` file interactively
-by prompting you to provide basic information about your package:
+by prompting you to provide basic information about your package.
+
+It will interactively ask you to fill in the fields, while using some smart defaults.
+
+```bash
+poet init
+```
+
+#### Options
+
+   * `--name`: Name of the package. 
+   * `--description`: Description of the package.
+   * `--author`: Author of the package.
+   * `--require`: Package to require with a version constraint. Should be in format `foo:1.0.0`.
+   * `--require-dev`: Development requirements, see `--require`.
+   * `--index`: Index to use when searching for packages.
 
 
-### `poet install`
+### install
 
-This command will install dependencies specified in `poetry.toml` (or `poetry.lock` if it exists)
-and lock them in the `poetry.lock` file.
+The `install` command reads the `poetry.toml` file from the current directory, resolves the dependencies,
+and installs themr.
+
+```bash
+poet install
+```
+
+If there is a `poetry.lock` file in the current directory,
+it will use the exact versions from there instead of resolving them.
+This ensures that everyone using the library will get the same versions of the dependencies.
+
+If there is no `poetry.lock` file, Poet will create one after dependency resolution.
 
 
-### `poet check`
+### update
 
-This command will check if the `poetry.toml` file is valid.
+In order to get the latest versions of the dependencies and to update the `poetry.lock` file,
+you should use the `update` command.
+
+```bash
+poet update
+```
+
+This will resolve all dependencies of the project and write the exact versions into `poetry.lock`.
+
+If you just want to update a few packages and not all, you can list them as such:
+
+```bash
+poet update requests toml
+```
+
+### check
+
+The `check` command will check if the `poetry.toml` file is valid.
+
+```bash
+poet check
+```
 
 
-### `poet publish`
+### package
 
-This command build and publishes the package to the remote repository.
+The `package` command builds the source and wheels archives.
+
+
+### publish
+
+This command build (if not already built) and publishes the package to the remote repository.
