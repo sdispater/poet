@@ -10,6 +10,7 @@ from .commands import (
     InstallCommand,
     LockCommand,
     PackageCommand,
+    PublishCommand,
     RequireCommand,
     SearchCommand,
     UpdateCommand
@@ -36,6 +37,7 @@ class Application(BaseApplication):
             LockCommand(),
             MakeSetupCommand(),
             PackageCommand(),
+            PublishCommand(),
             RequireCommand(),
             SearchCommand(),
             UpdateCommand()
