@@ -6,11 +6,14 @@ import glob
 
 from setuptools import Extension
 from setuptools.dist import Distribution
+from pip.commands.wheel import WheelCommand
 
 from semantic_version import Spec, Version
 
 
-SETUP_TEMPLATE = """from setuptools import setup
+SETUP_TEMPLATE = """# -*- coding: utf-8 -*-
+
+from setuptools import setup
 
 kwargs = dict(
     name={name},
@@ -94,6 +97,15 @@ class Builder(object):
 
             if readme:
                 os.unlink(readme)
+
+        # Building wheel
+        command = WheelCommand()
+        command_args = ['--no-index', '--no-deps', '--wheel-dir', 'dist', 'dist/{}'.format(poet.archive)]
+
+        if options.get('universal'):
+            command_args.append('--build-option=--universal')
+
+        command.main(command_args)
 
     def _setup(self, poet, **options):
         setup_kwargs = {
@@ -181,7 +193,7 @@ class Builder(object):
         }
 
         for name, script in poet.scripts.items():
-            entry_points['console_scripts'].append('{}={}:{}'.format(name, poet.name, script))
+            entry_points['console_scripts'].append('{}={}'.format(name, script))
 
         return entry_points
 

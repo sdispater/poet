@@ -2,7 +2,11 @@
 
 import requests
 from pip.models import PyPI
-from xmlrpc.client import ServerProxy
+
+try:
+    from xmlrpc.client import ServerProxy
+except ImportError:
+    from xmlrpclib import ServerProxy
 
 from semantic_version import Version
 

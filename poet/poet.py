@@ -182,6 +182,10 @@ class Poet(object):
     def path(self):
         return self._path
 
+    @property
+    def archive(self):
+        return '{}-{}.tar.gz'.format(self.name, self.version)
+
     def load(self):
         """
         Load data from the config.

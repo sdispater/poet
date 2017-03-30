@@ -18,7 +18,7 @@ class Lock(Poet):
 
         for package in packages:
             dep = Dependency(package['name'], package['version'])
-            pip_dep = PipDependency(package['name'], package['version'], package['checksum'])
+            pip_dep = PipDependency(package['name'], package['version'], package.get('checksum'))
 
             if package['category'] == 'dev':
                 self._dev_dependencies.append(dep)

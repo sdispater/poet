@@ -10,7 +10,7 @@ from pygments.formatters.terminal import TerminalFormatter
 from .command import Command
 from ...version_parser import VersionParser
 from ...version_selector import VersionSelector
-from ...utils.pygments import TOMLLexer
+from ...utils.lexers import TOMLLexer
 from ...build import Builder
 
 

@@ -2,6 +2,8 @@
 
 import os
 import sys
+import glob
+import distutils
 
 from cleo import Command as BaseCommand, InputOption
 
@@ -94,9 +96,15 @@ class Command(BaseCommand):
         if sys.platform == "win32":
             self._virtual_env = os.path.join(os.environ['VIRTUAL_ENV'], 'Lib', 'site-packages')
         else:
+            lib = os.path.join(
+                os.environ['VIRTUAL_ENV'], 'lib'
+            )
+
+            python = glob.glob(os.path.join(lib, 'python*'))[0].replace(lib + '/', '')
+
             self._virtual_env = os.path.join(
-                os.environ['VIRTUAL_ENV'], 'lib',
-                'python{}.{}'.format(*sys.version_info[:2]),
+                lib,
+                python,
                 'site-packages'
             )
 
@@ -104,3 +112,11 @@ class Command(BaseCommand):
         sys.path.insert(0, self._virtual_env)
 
         site.addsitedir(self._virtual_env)
+
+    def pip(self):
+        if not self._virtual_env:
+            return distutils.spawn.find_executable('pip')
+
+        return os.path.realpath(
+            os.path.join(self._virtual_env, '..', '..', '..', 'bin', 'pip')
+        )

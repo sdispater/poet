@@ -11,6 +11,7 @@ class PackageCommand(Command):
     Builds the package.
 
     package
+        { --u|universal : Build universal wheel. }
         { --c|clean : Make a clean package. }
     """
 
@@ -28,7 +29,7 @@ class PackageCommand(Command):
         self.line('')
         self.line('<info>Building <comment>{}.{}</></>'.format(poet.name, fmt))
 
-        poet.build()
+        poet.build(universal=self.option('universal'))
 
         self.line('<info><comment>{}.{}</> built!</>'.format(poet.name, fmt))
         self.line('')

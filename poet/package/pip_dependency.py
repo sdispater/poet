@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from pip.req import InstallRequirement
 from .dependency import Dependency
 
 
@@ -26,6 +27,12 @@ class PipDependency(Dependency):
                 normalized_name += normalized_constraint
 
         return normalized_name
+
+    def as_requirement(self):
+        if self.is_vcs_dependency():
+            return InstallRequirement.from_editable(self.normalized_name)
+
+        return InstallRequirement.from_line(self.normalized_name)
 
     def _normalize_vcs_constraint(self, constraint):
         if 'git' in constraint:
