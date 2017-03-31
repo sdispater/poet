@@ -10,7 +10,7 @@ before_install:
   - poet make:setup -v
   - python setup.py develop
   - pip install codecov
-  - /home/travis/virtualenv/$TRAVIS_PYTHON_VERSION/bin/poet install -v
+  - /home/travis/virtualenv/python$TRAVIS_PYTHON_VERSION/bin/poet install -v
 
 script: py.test --cov=poet --cov-config=.coveragerc tests/
 
