@@ -2,6 +2,9 @@
 
 Poet helps you declare, manage and install dependencies of Python projects, ensuring you have the right stack everywhere.
 
+The package is **highly experimental** at the moment so expect things to change and break. However, if you feel adventurous
+I'd gladly appreciate feedback and pull requests.
+
 
 ## Introduction
 
@@ -10,9 +13,9 @@ It only needs one file to do all of that: `poetry.toml`.
 
 ```toml
 [package]
-name = "poet"
+name = "pypoet"
 version = "0.1.0"
-description = "Poet helps you declare, manage and install dependencies of PHP projects, ensuring you have the right stack everywhere."
+description = "Poet helps you declare, manage and install dependencies of Python projects, ensuring you have the right stack everywhere."
 
 license = "MIT"
 
@@ -39,14 +42,16 @@ requests = "^2.13"
 semantic_version = "^2.6"
 pygments = "^2.2"
 twine = "^1.8"
-cleo = { git = "git+https://github.com/sdispater/cleo.git", branch = "master" }
+wheel = "^0.29"
+pip-tools = "^1.8.2"
+cleo = { git = "https://github.com/sdispater/cleo.git", branch = "master" }
 
 [dev-dependencies]
 pytest = "^3.0"
-
+httpretty = "^0.8.14"
 
 [scripts]
-poet = 'app.run'
+poet = 'poet:app.run'
 ```
 
 There are some things we can notice here:
@@ -90,7 +95,7 @@ poet init
 ### install
 
 The `install` command reads the `poetry.toml` file from the current directory, resolves the dependencies,
-and installs themr.
+and installs them.
 
 ```bash
 poet install
@@ -136,4 +141,4 @@ The `package` command builds the source and wheels archives.
 
 ### publish
 
-This command build (if not already built) and publishes the package to the remote repository.
+This command builds (if not already built) and publishes the package to the remote repository.
