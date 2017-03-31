@@ -44,6 +44,9 @@ class PipDependency(Dependency):
             else:
                 revision = constraint['rev']
 
+            if not repo.startswith('git+'):
+                repo = 'git+' + repo
+
             return '{}@{}#egg={}'.format(repo, revision, self._name)
 
         raise ValueError('Unsupport VCS.')

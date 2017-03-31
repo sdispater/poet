@@ -91,7 +91,7 @@ class Installer(object):
                 rev, _ = specifier.split('#')
 
                 version = self._get_vcs_version(url, rev)
-                checksum = 'sha1:{}'.format(version)
+                checksum = 'sha1:{}'.format(version['rev'])
             else:
                 version = version.replace('==', '')
                 checksum = list(hashes[m])
@@ -114,9 +114,11 @@ class Installer(object):
             unpack_url(Link(url), tmp_dir, download_dir=tmp_dir, only_download=True)
 
             os.chdir(tmp_dir)
-            subprocess.check_output(['git', 'checkout', rev])
+            with open(os.devnull) as devnull:
+                subprocess.check_output(['git', 'checkout', rev], stderr=devnull)
 
-            revision = subprocess.check_output(['git', 'rev-parse', rev])
+                revision = subprocess.check_output(['git', 'rev-parse', rev], stderr=devnull)
+
             revision = revision.decode().strip()
             version = {
                 'git': url,

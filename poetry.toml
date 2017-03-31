@@ -1,5 +1,5 @@
 [package]
-name = "poet"
+name = "pypoet"
 version = "0.1.0"
 description = "Poet helps you declare, manage and install dependencies of PHP projects, ensuring you have the right stack everywhere."
 
@@ -28,11 +28,14 @@ requests = "^2.13"
 semantic_version = "^2.6"
 pygments = "^2.2"
 twine = "^1.8"
-cleo = { git = "git+https://github.com/sdispater/cleo.git", branch = "develop" }
+wheel = "^0.29"
+pip-tools = "^1.8.2"
+cleo = { git = "https://github.com/sdispater/cleo.git", branch = "develop" }
 
 [dev-dependencies]
 pytest = "^3.0"
-
+tox = "^2.6"
+httpretty = "^0.8.14"
 
 [scripts]
-poet = 'app.run'
+poet = 'poet:app.run'
