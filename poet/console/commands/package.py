@@ -27,9 +27,9 @@ class PackageCommand(Command):
         fmt = 'tar.gz'
 
         self.line('')
-        self.line('<info>Building <comment>{}.{}</></>'.format(poet.name, fmt))
+        self.line('<info>Building <comment>{}-{}</></>'.format(poet.name, poet.version))
 
         poet.build(universal=self.option('universal'))
 
-        self.line('<info><comment>{}.{}</> built!</>'.format(poet.name, fmt))
+        self.line('<info><comment>{}-{}</> built!</>'.format(poet.name, poet.version))
         self.line('')

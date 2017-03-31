@@ -76,7 +76,6 @@ class Builder(object):
         setup = os.path.join(poet.base_dir, 'setup.py')
         manifest = os.path.join(poet.base_dir, 'MANIFEST.in')
         self._write_setup(setup_kwargs, setup)
-        self._write_manifest(manifest)
 
         readme = None
         if poet.has_markdown_readme():
@@ -85,6 +84,10 @@ class Builder(object):
                 readme = None
             else:
                 self._write_readme(readme, setup_kwargs['long_description'])
+
+        self._manifest.append('include README.rst')
+
+        self._write_manifest(manifest)
 
         try:
             dist = Distribution(setup_kwargs)
@@ -262,9 +265,9 @@ class Builder(object):
 
                 if element.endswith('.py') and os.path.basename(element) != '__init__.py':
                     modules.append(element.replace('.py', '').replace('/', '.'))
-                elif os.path.basename(element) != '__init__.py' and '__pycache__' not in element:
+                elif not element.endswith(('.py', '.pyc')) and '__pycache__' not in element:
                     # Non Python file, add them to data
-                    self._manifest.append('include {}'.format(element))
+                    self._manifest.append('include {}\n'.format(element))
                 elif os.path.basename(element) == '__init__.py':
                     dir = os.path.dirname(element)
                     children = [
