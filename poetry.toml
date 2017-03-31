@@ -1,7 +1,7 @@
 [package]
 name = "pypoet"
 version = "0.1.0"
-description = "Poet helps you declare, manage and install dependencies of PHP projects, ensuring you have the right stack everywhere."
+description = "Poet helps you declare, manage and install dependencies of Python projects, ensuring you have the right stack everywhere."
 
 license = "MIT"
 
