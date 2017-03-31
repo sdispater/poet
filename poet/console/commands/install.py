@@ -7,7 +7,7 @@ from .command import Command
 
 class InstallCommand(Command):
     """
-    Install and lock dependencies specified in poetry.toml file.
+    Install and lock dependencies specified in the <comment>poetry.toml</comment> file.
 
     install
         {--no-dev : Do not install dev dependencies}

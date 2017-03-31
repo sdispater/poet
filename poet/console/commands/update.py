@@ -7,7 +7,7 @@ from .command import Command
 
 class UpdateCommand(Command):
     """
-    Update dependencies has according to the poetry.toml file.
+    Update dependencies as according to the <comment>poetry.toml</> file.
 
     update
     """

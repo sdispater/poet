@@ -7,7 +7,7 @@ from .command import Command
 
 class LockCommand(Command):
     """
-    Lock the dependencies set in poetry.toml.
+    Lock the dependencies specified in <comment>poetry.toml</comment>.
 
     lock
         {--f|force : Force locking}

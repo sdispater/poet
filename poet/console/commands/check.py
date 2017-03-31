@@ -5,7 +5,7 @@ from .command import Command
 
 class CheckCommand(Command):
     """
-    Check the poetry.toml file.
+    Check the <comment>poetry.toml</> file.
 
     check
     """
