@@ -15,9 +15,9 @@ class UpdateCommand(Command):
     def handle(self):
         if not self.has_lock():
             # We do not have a lock file
-            # Assumming installation
+            # Assuming installation
             return self.call('install')
 
         installer = Installer(self, self._repository)
 
-        installer.install(self.poet)
+        installer.update()

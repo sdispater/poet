@@ -96,3 +96,6 @@ class Dependency(object):
         # Neither setuptools nor distutils support VCS constraint
         # So by default we return nothing
         return
+
+    def __repr__(self):
+        return '<{} {}>'.format(self.__class__.__name__, self.normalized_name)

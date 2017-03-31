@@ -23,7 +23,7 @@ authors = [
     "Sébastien Eustace <sebastien@eustace.io>"
 ]
 
-readme = 'README.rst'
+readme = 'README.md'
 
 repository = "https://github.com/sdispater/poet"
 homepage = "https://poet.eustace.io"
@@ -48,6 +48,8 @@ cleo = { git = "https://github.com/sdispater/cleo.git", branch = "master" }
 
 [dev-dependencies]
 pytest = "^3.0"
+pytest-cov = "^2.4"
+coverage = "<4.0"
 httpretty = "^0.8.14"
 
 [scripts]

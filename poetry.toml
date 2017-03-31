@@ -34,6 +34,8 @@ cleo = { git = "https://github.com/sdispater/cleo.git", branch = "develop" }
 
 [dev-dependencies]
 pytest = "^3.0"
+pytest-cov = "^2.4"
+coverage = "<4.0"
 tox = "^2.6"
 httpretty = "^0.8.14"
 

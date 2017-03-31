@@ -18,9 +18,4 @@ class InstallCommand(Command):
 
         installer = Installer(self, self._repository)
 
-        if self.has_lock():
-            poet = self.poet.lock
-        else:
-            poet = self.poet
-
-        installer.install(poet, dev=dev)
+        installer.install(dev=dev)

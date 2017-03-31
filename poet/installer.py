@@ -19,28 +19,31 @@ from piptools.cache import DependencyCache
 from piptools.utils import is_pinned_requirement
 
 from .locations import CACHE_DIR
+from .package.pip_dependency import PipDependency
 
 
 class Installer(object):
 
     def __init__(self, command, repository):
         self._command = command
+        self._poet = command.poet
         self._repository = repository
 
-    def install(self, poet, dev=True):
-        if not poet.is_lock():
-            self.lock(poet, dev=dev)
+    def install(self, dev=True):
+        if not os.path.exists(self._poet.lock_file):
+            self.lock(dev=dev)
 
-            return self.install(poet.lock, dev=dev)
+            return self.install(dev=dev)
 
         self._command.line('')
         self._command.line('<info>Installing dependencies</>')
         self._command.line('')
 
-        deps = poet.pip_dependencies
+        lock = self._poet.lock
+        deps = lock.pip_dependencies
 
         if dev:
-            deps += poet.pip_dev_dependencies
+            deps += lock.pip_dev_dependencies
 
         for dep in deps:
             name = dep.name
@@ -59,15 +62,112 @@ class Installer(object):
                     self._command.error('Error while installing [{}] ({})'.format(name, str(e)))
                     break
 
-    def lock(self, poet, dev=True):
-        if poet.is_lock():
+    def update(self, dev=True):
+        if self._poet.is_lock():
+            raise Exception('Update is only available with a poetry.toml file.')
+
+        self._command.line('')
+        self._command.line('<info>Updating dependencies</>')
+        self._command.line('')
+
+        # Reading current lock
+        lock = self._poet.lock
+        current_deps = lock.pip_dependencies
+        if dev:
+            current_deps += lock.pip_dev_dependencies
+
+        # Resolving new dependencies and locking them
+        deps = self._poet.pip_dependencies
+        if dev:
+            deps += self._poet.pip_dev_dependencies
+
+        packages = self._resolve(deps)
+        deps = [PipDependency(p['name'], p['version']) for p in packages]
+
+        to_act_on = []
+        for i, dep in enumerate(deps):
+            action = None
+            from_ = None
+            found = False
+            for j, current_dep in enumerate(current_deps):
+                name = dep.name
+                current_name = current_dep.name
+                version = dep.normalized_constraint
+                current_version = current_dep.normalized_constraint
+
+                if name == current_name:
+                    found = True
+
+                    if version == current_version:
+                        break
+
+                    action = 'update'
+                    from_ = current_dep
+                    break
+
+            if not found:
+                action = 'install'
+
+            if action:
+                to_act_on.append((action, from_, dep))
+
+        if not to_act_on:
+            self._command.line('  - <info>Dependencies already up-to-date!</info>')
+
+            return
+
+        error = False
+        for action, from_, dep in to_act_on:
+            cmd = [self._command.pip(), 'install', dep.normalized_name]
+            description = 'Installing'
+            if action == 'update':
+                description = 'Updating'
+                cmd.append('-U')
+
+            name = dep.name
+
+            if dep.is_vcs_dependency():
+                constraint = dep.pretty_constraint
+            else:
+                constraint = dep.normalized_constraint.replace('==', '')
+
+            version = '<comment>{}</>'.format(constraint)
+
+            if from_:
+                if from_.is_vcs_dependency():
+                    constraint = from_.pretty_constraint
+                else:
+                    constraint = from_.normalized_constraint.replace('==', '')
+
+                version = '<comment>{}</> -> '.format(constraint) + version
+
+            self._command.line('  - {} <info>{}</> ({})'.format(description, name, version))
+
+            with open(os.devnull) as devnull:
+                try:
+                    subprocess.check_output(cmd, stderr=devnull)
+                except subprocess.CalledProcessError as e:
+                    error = True
+                    self._command.error('Error while installing [{}] ({})'.format(name, str(e)))
+                    break
+
+        if not error:
+            self._write_lock(packages)
+
+    def lock(self, dev=True):
+        if self._poet.is_lock():
             return
 
         self._command.line('')
         self._command.line('<info>Locking dependencies to <comment>poetry.lock</></>')
         self._command.line('')
 
-        deps = poet.pip_dependencies
+        deps = self._poet.pip_dependencies
+        packages = self._resolve(deps)
+
+        self._write_lock(packages)
+
+    def _resolve(self, deps):
         constraints = [dep.as_requirement() for dep in deps]
 
         command = get_pip_command()
@@ -105,11 +205,12 @@ class Installer(object):
 
             packages.append(package)
 
-        self._command.line('  - <info>Writing dependencies</>')
-        self._write_lock(poet, sorted(packages, key=lambda p: p['name'].lower()))
+        return sorted(packages, key=lambda p: p['name'].lower())
 
     def _get_vcs_version(self, url, rev):
         tmp_dir = tempfile.mkdtemp()
+        current_dir = self._poet.base_dir
+
         try:
             unpack_url(Link(url), tmp_dir, download_dir=tmp_dir, only_download=True)
 
@@ -128,14 +229,18 @@ class Installer(object):
             raise
         finally:
             shutil.rmtree(tmp_dir)
+            # Going back to current directory
+            os.chdir(current_dir)
 
         return version
 
-    def _write_lock(self, poet, packages):
+    def _write_lock(self, packages):
+        self._command.line('  - <info>Writing dependencies</>')
+
         output = {
             'root': {
-                'name': poet.name,
-                'version': poet.version
+                'name': self._poet.name,
+                'version': self._poet.version
             },
             'package': []
         }
