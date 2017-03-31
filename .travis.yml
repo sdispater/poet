@@ -10,7 +10,7 @@ before_install:
   - poet make:setup -v
   - python setup.py develop
   - pip install codecov
-  - poet install -v
+  - /usr/local/bin/poet install -v
 
 script: py.test --cov=poet --cov-config=.coveragerc tests/
 
