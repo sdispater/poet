@@ -163,6 +163,10 @@ class Installer(object):
         self._command.line('')
 
         deps = self._poet.pip_dependencies
+
+        if dev:
+            deps += self._poet.pip_dev_dependencies
+
         packages = self._resolve(deps)
 
         self._write_lock(packages)
