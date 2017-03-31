@@ -6,6 +6,7 @@ python:
   - "pypy"
 
 before_install:
+  - pip install pip -U
   - pip install pypoet
   - poet make:setup -v
   - pip uninstall pypoet -y
