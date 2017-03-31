@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import tempfile
-import zipfile
 import subprocess
 import toml
 
 import os
-import glob
 import shutil
 
 from hashlib import sha256

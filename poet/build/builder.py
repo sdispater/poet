@@ -2,13 +2,13 @@
 
 import os
 import re
-import glob
 
 from setuptools import Extension
 from setuptools.dist import Distribution
 from pip.commands.wheel import WheelCommand
-
 from semantic_version import Spec, Version
+
+from .._compat import Path
 
 
 SETUP_TEMPLATE = """# -*- coding: utf-8 -*-
@@ -218,68 +218,75 @@ class Builder(object):
         excluded = []
 
         for exclude in poet.exclude + poet.ignore:
-            for exc in glob.glob(exclude, recursive=True):
-                if exc.startswith('/'):
-                    exc = exc[1:]
+            if not exclude:
+                continue
 
-                if exc.endswith('.py'):
-                    excluded.append(exc.replace('.py', '').replace('/', '.'))
+            if exclude.startswith('/'):
+                exclude = exclude[1:]
+
+            for exc in Path().glob(exclude):
+                if exc.suffix == '.py':
+                    excluded.append('.'.join(exc.with_suffix('').parts))
 
         for include in includes:
-            elements = glob.glob(include, recursive=True)
-            dirs = [d for d in elements if os.path.isdir(d)]
-            others = [d for d in elements if not os.path.isdir(d)]
+            dirs = []
+            others = []
+            for element in Path().glob(include):
+                if element.is_dir():
+                    dirs.append(element)
+                else:
+                    others.append(element)
 
             m = re.match('^(.+)/\*\*/\*(\..+)?$', include)
             if m:
                 # {dir}/**/* will not take the root directory
                 # So we add it
-                dirs.insert(0, m.group(1))
+                dirs.insert(0, Path(m.group(1)))
 
             for dir in dirs:
-                package = dir.replace('/', '.')
+                package = '.'.join(dir.parts)
 
                 if dir in crawled:
                     continue
 
                 # We have a package
-                if os.path.exists(os.path.join(dir, '__init__.py')):
+                if (dir / '__init__.py').exists():
                     children = [
-                        c for c in glob.glob(os.path.join(dir, '*.py'))
+                        c for c in dir.glob('*.py')
                     ]
 
-                    filtered_children = [c for c in children if c not in excluded]
+                    filtered_children = [c for c in children if '.'.join(c.parts) not in excluded]
                     if children == filtered_children:
                         # If none of the children are excluded
                         # We have a full package
                         packages.append(package)
                     else:
-                        modules += [c.replace('/', '.') for c in filtered_children]
+                        modules += ['.'.join(c.parts) for c in filtered_children]
 
                     crawled += children
 
                 crawled.append(dir)
 
             for element in others:
-                if element in crawled or element.endswith('.pyc'):
+                if element in crawled or element.suffix == '.pyc':
                     continue
 
-                if element.endswith('.py') and os.path.basename(element) != '__init__.py':
-                    modules.append(element.replace('.py', '').replace('/', '.'))
-                elif not element.endswith(('.py', '.pyc')) and '__pycache__' not in element:
+                if element.suffix == '.py' and element.name != '__init__.py':
+                    modules.append('.'.join(element.with_suffix('').parts))
+                elif element.suffix not in ['.py', '.pyc'] and '__pycache__' not in element.parts:
                     # Non Python file, add them to data
-                    self._manifest.append('include {}\n'.format(element))
-                elif os.path.basename(element) == '__init__.py':
-                    dir = os.path.dirname(element)
+                    self._manifest.append('include {}\n'.format(element.as_posix()))
+                elif element.name == '__init__.py':
+                    dir = element.parent
                     children = [
                         c
-                        for c in glob.glob(os.path.join(dir, '*.py'))
-                        if os.path.basename(c) != '__init__.py'
+                        for c in dir.glob('*.py')
+                        if c.name != '__init__.py'
                     ]
 
                     if not children and dir not in crawled:
                         # We actually have a package
-                        packages.append(dir.replace('/', '.'))
+                        packages.append('.'.join(dir.parts))
 
                         crawled.append(dir)
 

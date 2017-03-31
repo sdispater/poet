@@ -30,6 +30,7 @@ twine = "^1.8"
 wheel = "^0.29"
 pip-tools = "^1.8.2"
 cleo = { git = "https://github.com/sdispater/cleo.git", branch = "develop" }
+pathlib2 = "^2.2"  # Only needed for Python 2.7
 
 [dev-dependencies]
 pytest = "^3.0"
