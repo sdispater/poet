@@ -101,14 +101,15 @@ class Builder(object):
             if readme:
                 os.unlink(readme)
 
-        # Building wheel
-        command = WheelCommand()
-        command_args = ['--no-index', '--no-deps', '--wheel-dir', 'dist', 'dist/{}'.format(poet.archive)]
+        # Building wheel if necessary
+        if not options.get('no_wheels'):
+            command = WheelCommand()
+            command_args = ['--no-index', '--no-deps', '--wheel-dir', 'dist', 'dist/{}'.format(poet.archive)]
 
-        if options.get('universal'):
-            command_args.append('--build-option=--universal')
+            if options.get('universal'):
+                command_args.append('--build-option=--universal')
 
-        command.main(command_args)
+            command.main(command_args)
 
     def _setup(self, poet, **options):
         setup_kwargs = {
@@ -260,7 +261,7 @@ class Builder(object):
                 crawled.append(dir)
 
             for element in others:
-                if element in crawled:
+                if element in crawled or element.endswith('.pyc'):
                     continue
 
                 if element.endswith('.py') and os.path.basename(element) != '__init__.py':
