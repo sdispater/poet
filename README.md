@@ -31,7 +31,7 @@ documentation = "https://poet.eustace.io/docs"
 
 keywords = ['packaging', 'poet']
 
-include = ['poet/**/*']
+include = ['poet/**/*', 'LICENSE']
 
 python = ["~2.7", "^3.2"]
 
