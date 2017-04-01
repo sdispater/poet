@@ -55,8 +55,13 @@ class PyPiRepository(object):
         if mode == self.SEARCH_FULLTEXT:
             search['summary'] = query
 
-        with ServerProxy(self._url) as client:
+        client = ServerProxy(self._url)
+        try:
             hits = client.search(search, 'or')
+        except Exception:
+            raise
+        finally:
+            client.close()
 
         for hit in hits:
             results.append({
