@@ -12,8 +12,8 @@ before_install:
   - pip uninstall pypoet -y
   - python setup.py develop
   - pip install codecov
-  - /home/travis/virtualenv/python$TRAVIS_PYTHON_VERSION/bin/poet --version
-  - /home/travis/virtualenv/python$TRAVIS_PYTHON_VERSION/bin/poet install -v
+  - poet --version
+  - poet install -v
 
 script: py.test --cov=poet --cov-config=.coveragerc tests/
 
