@@ -26,8 +26,7 @@ authors = [
 readme = 'README.md'
 
 repository = "https://github.com/sdispater/poet"
-homepage = "https://poet.eustace.io"
-documentation = "https://poet.eustace.io/docs"
+homepage = "https://github.com/sdispater/poet"
 
 keywords = ['packaging', 'poet']
 
