@@ -22,21 +22,7 @@ python = ["~2.7", "^3.5"]
 
 
 [dependencies]
-toml = "^0.9"
-requests = "^2.13"
-semantic_version = "^2.6"
-pygments = "^2.2"
-twine = "^1.8"
-wheel = "^0.29"
-pip-tools = "^1.8.2"
-cleo = { git = "https://github.com/sdispater/cleo.git", branch = "develop" }
-pathlib2 = "^2.2"  # Only needed for Python 2.7
+pendulum = "^1.2.0"
 
 [dev-dependencies]
 pytest = "^3.0"
-pytest-cov = "^2.4"
-coverage = "<4.0"
-httpretty = "^0.8.14"
-
-[scripts]
-poet = 'poet:app.run'
