@@ -60,7 +60,7 @@ class Installer(object):
                     self._command.error('Error while installing [{}] ({})'.format(name, str(e)))
                     break
 
-    def update(self, dev=True):
+    def update(self, packages=None, dev=True):
         if self._poet.is_lock():
             raise Exception('Update is only available with a poetry.toml file.')
 
@@ -79,7 +79,11 @@ class Installer(object):
         if dev:
             deps += self._poet.pip_dev_dependencies
 
-        packages = self._resolve(deps)
+        if packages:
+            packages = [p for p in self._resolve(deps) if p['name'] in packages]
+        else:
+            packages = self._resolve(deps)
+
         deps = [PipDependency(p['name'], p['version']) for p in packages]
 
         to_act_on = []
@@ -255,7 +259,7 @@ class Installer(object):
                 'category': package['category']
             })
 
-        with open(self._command.lock_file, 'w') as f:
+        with open(self._poet.lock_file, 'w') as f:
             f.write(toml.dumps(output))
 
     @classmethod

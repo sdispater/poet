@@ -10,6 +10,7 @@ class UpdateCommand(Command):
     Update dependencies as according to the <comment>poetry.toml</> file.
 
     update
+        { packages?* : The packages to update.}
     """
 
     def handle(self):
@@ -20,4 +21,4 @@ class UpdateCommand(Command):
 
         installer = Installer(self, self._repository)
 
-        installer.update()
+        installer.update(packages=self.argument('packages'))

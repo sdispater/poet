@@ -9,7 +9,7 @@ authors = [
     "Sébastien Eustace <sebastien@eustace.io>"
 ]
 
-readme = 'README.md'
+readme = 'README.rst'
 
 repository = "https://github.com/sdispater/poet"
 homepage = "https://github.com/sdispater/poet"
@@ -35,7 +35,6 @@ pathlib2 = "^2.2"  # Only needed for Python 2.7
 [dev-dependencies]
 pytest = "^3.0"
 pytest-cov = "^2.4"
-pytest-mock = "^1.6"
 coverage = "<4.0"
 httpretty = "^0.8.14"
 
