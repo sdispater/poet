@@ -61,6 +61,9 @@ class Command(BaseCommand):
         """
         Executes the command.
         """
+        # Adding warning style
+        self.set_style('warning', 'black', 'yellow')
+
         index = self.option('index')
 
         if index:

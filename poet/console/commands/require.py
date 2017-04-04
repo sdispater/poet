@@ -19,6 +19,9 @@ class RequireCommand(Command):
         packages = self.argument('name')
         is_dev = self.option('dev')
         install = self.option('install')
+        if install:
+            self.line('<warning>--install option is not supported yet.</>')
+
         requires = []
 
         for package in packages:
