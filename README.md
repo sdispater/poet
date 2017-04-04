@@ -127,6 +127,11 @@ This ensures that everyone using the library will get the same versions of the d
 
 If there is no `poetry.lock` file, Poet will create one after dependency resolution.
 
+#### Options
+
+* `--no-dev`: Do not install dev dependencies.
+* `--index`: The index to use when installing packages.
+
 
 ### update
 
@@ -145,6 +150,31 @@ If you just want to update a few packages and not all, you can list them as such
 poet update requests toml
 ```
 
+#### Options
+
+* `--index`: The index to use when installing packages.
+
+
+### package
+
+The `package` command builds the source and wheels archives.
+
+#### Options
+
+* `--no-universal`: Do not build a universal wheel.
+* `--no-wheels`: Build only the source package.
+*  `-c|--clean`: Make a clean package.
+
+### publish
+
+This command builds (if not already built) and publishes the package to the remote repository.
+
+It will automatically register the package before uploading if this is the first time it is submitted.
+
+#### Options
+
+* `-r|--repository`: The repository to register the package to (default: `pypi`). Should match a section of your `~/.pypirc` file.
+
 ### check
 
 The `check` command will check if the `poetry.toml` file is valid.
@@ -154,17 +184,7 @@ poet check
 ```
 
 
-### package
-
-The `package` command builds the source and wheels archives.
-
-
-### publish
-
-This command builds (if not already built) and publishes the package to the remote repository.
-
-
-## poetry.toml
+## The `poetry.toml` file
 
 A `poetry.toml` file is composed of multiple sections.
 
