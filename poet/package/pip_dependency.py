@@ -41,8 +41,10 @@ class PipDependency(Dependency):
                 revision = constraint['branch']
             elif 'tag' in constraint:
                 revision = constraint['tag']
-            else:
+            elif 'rev' in constraint:
                 revision = constraint['rev']
+            else:
+                revision = 'master'
 
             if not repo.startswith('git+'):
                 repo = 'git+' + repo

@@ -32,7 +32,7 @@ class Dependency(object):
                     vcs_kind = 'tag'
                     version = self._constraint['tag']
                 else:
-                    version = self._constraint['branch']
+                    version = self._constraint.get('branch', 'master')
 
                 constraint = '{} {}'.format(vcs_kind, version)
             else:
