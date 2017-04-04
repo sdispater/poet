@@ -175,6 +175,33 @@ It will automatically register the package before uploading if this is the first
 
 * `-r|--repository`: The repository to register the package to (default: `pypi`). Should match a section of your `~/.pypirc` file.
 
+### search
+
+This command searches for packages on a remote index.
+
+```bash
+poet search requests pendulum
+```
+
+#### Options
+
+* `-i|--index`: The index to use.
+* `-N|--only-name`: Search only in name.
+
+### lock
+
+This command locks (without installing) the dependencies specified in `poetry.toml`.
+
+```bash
+poet lock
+```
+
+#### Options
+
+* `-i|--index`: The index to use.
+* `-f|--force`: Force locking.
+
+
 ### check
 
 The `check` command will check if the `poetry.toml` file is valid.
