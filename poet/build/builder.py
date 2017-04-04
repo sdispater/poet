@@ -106,7 +106,7 @@ class Builder(object):
             command = WheelCommand()
             command_args = ['--no-index', '--no-deps', '--wheel-dir', 'dist', 'dist/{}'.format(poet.archive)]
 
-            if options.get('universal'):
+            if options.get('universal', True):
                 command_args.append('--build-option=--universal')
 
             command.main(command_args)
