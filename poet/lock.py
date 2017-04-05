@@ -20,6 +20,7 @@ class Lock(Poet):
             dep = Dependency(
                 package['name'],
                 package['version'],
+                category=package['category'],
                 optional=package.get('optional')
             )
             pip_dep = PipDependency(

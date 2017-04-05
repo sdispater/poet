@@ -275,7 +275,7 @@ class Installer(object):
                 def _category(child):
                     optional = False
                     category = None
-                    for parent in reversed_dependencies[child]:
+                    for parent in reversed_dependencies.get(child, set()):
                         for dep in deps:
                             if dep.name != parent:
                                 continue
@@ -297,6 +297,14 @@ class Installer(object):
                     return category, optional
 
                 category, optional = _category(name)
+
+            # If category is still None at this point
+            # The dependency must have come from a VCS
+            # dependency. To avoid missing packages
+            # we assume "main" category and not optional
+            if category is None:
+                category = 'main'
+                optional = False
 
             package = {
                 'name': name,
