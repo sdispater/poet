@@ -237,6 +237,9 @@ class Installer(object):
         cache = resolver.dependency_cache.cache
         for m in unpinned:
             name = key_from_req(m.req)
+            if name not in cache:
+                continue
+
             dependencies = cache[name][list(cache[name].keys())[0]]
             for dep in dependencies:
                 dep = dep.replace('_', '-').lower()
