@@ -180,6 +180,8 @@ def test_update_with_no_updates(mocker):
     sub = mocker.patch('subprocess.check_output')
     resolve = mocker.patch('piptools.resolver.Resolver.resolve')
     get_hashes = mocker.patch('piptools.resolver.Resolver.resolve_hashes')
+    reverse_dependencies = mocker.patch('piptools.resolver.Resolver.reverse_dependencies')
+    reverse_dependencies.return_value = {}
     write_lock = mocker.patch('poet.installer.Installer._write_lock')
     pendulum_req = InstallRequirement.from_line('pendulum==1.2.0')
     pytest_req = InstallRequirement.from_line('pytest==3.0.7')
