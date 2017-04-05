@@ -9,7 +9,6 @@ before_install:
   - pip install pip -U
   - pip install pypoet
   - pip install codecov
-  - pip install setuptools -U
   - poet make:setup -v
   - pip uninstall pypoet -y
 
@@ -22,11 +21,12 @@ install:
         else
           rm -rf "$PYENV_ROOT" && git clone --depth 1 https://github.com/yyuu/pyenv.git "$PYENV_ROOT"
         fi
-        export PYPY_VERSION="5.7.1"
+        export PYPY_VERSION="5.6.0"
         "$PYENV_ROOT/bin/pyenv" install --skip-existing "pypy-$PYPY_VERSION"
         virtualenv --python="$PYENV_ROOT/versions/pypy-$PYPY_VERSION/bin/python" "$HOME/virtualenvs/pypy-$PYPY_VERSION"
         source "$HOME/virtualenvs/pypy-$PYPY_VERSION/bin/activate"
       fi
+  - pip install setuptools -U
   - python setup.py develop
   - poet --version
   - poet install -v
