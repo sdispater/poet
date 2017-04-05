@@ -6,9 +6,7 @@ python:
   - "pypy"
 
 before_install:
-  - pip install pip -U
   - pip install pypoet
-  - pip install codecov
   - poet make:setup -v
   - pip uninstall pypoet -y
 
@@ -26,7 +24,9 @@ install:
         virtualenv --python="$PYENV_ROOT/versions/pypy-$PYPY_VERSION/bin/python" "$HOME/virtualenvs/pypy-$PYPY_VERSION"
         source "$HOME/virtualenvs/pypy-$PYPY_VERSION/bin/activate"
       fi
+  - pip install pip -U
   - pip install setuptools -U
+  - pip install codecov
   - python setup.py develop
   - poet --version
   - poet install -v
