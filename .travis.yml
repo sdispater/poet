@@ -1,17 +1,32 @@
 language: python
 
 python:
-  - "2.7"
+  - "2.7.12"
   - "3.6"
   - "pypy"
 
 before_install:
   - pip install pip -U
   - pip install pypoet
+  - pip install codecov
   - poet make:setup -v
   - pip uninstall pypoet -y
+
+install:
+  - |
+      if [ "$TRAVIS_PYTHON_VERSION" = "pypy" ]; then
+        export PYENV_ROOT="$HOME/.pyenv"
+        if [ -f "$PYENV_ROOT/bin/pyenv" ]; then
+          pushd "$PYENV_ROOT" && git pull && popd
+        else
+          rm -rf "$PYENV_ROOT" && git clone --depth 1 https://github.com/yyuu/pyenv.git "$PYENV_ROOT"
+        fi
+        export PYPY_VERSION="5.7.1"
+        "$PYENV_ROOT/bin/pyenv" install --skip-existing "pypy-$PYPY_VERSION"
+        virtualenv --python="$PYENV_ROOT/versions/pypy-$PYPY_VERSION/bin/python" "$HOME/virtualenvs/pypy-$PYPY_VERSION"
+        source "$HOME/virtualenvs/pypy-$PYPY_VERSION/bin/activate"
+      fi
   - python setup.py develop
-  - pip install codecov
   - poet --version
   - poet install -v
 
