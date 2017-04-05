@@ -9,6 +9,7 @@ before_install:
   - pip install pip -U
   - pip install pypoet
   - pip install codecov
+  - pip install setuptools -U
   - poet make:setup -v
   - pip uninstall pypoet -y
 
