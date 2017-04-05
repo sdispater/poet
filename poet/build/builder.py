@@ -28,6 +28,7 @@ kwargs = dict(
     classifiers={classifiers},
     entry_points={entry_points},
     install_requires={install_requires},
+    extras_require={extras_require},
     packages={packages},
     py_modules={py_modules},
     script_name='setup.py',
@@ -135,6 +136,8 @@ class Builder(object):
 
         setup_kwargs['install_requires'] = self._install_requires(poet)
 
+        setup_kwargs['extras_require'] = self._extras_require(poet)
+
         setup_kwargs.update(self._packages(poet))
 
         # Extensions
@@ -209,6 +212,21 @@ class Builder(object):
             requires.append(dependency.normalized_name)
 
         return requires
+
+    def _extras_require(self, poet):
+        if not poet.features:
+            return {}
+
+        extras = {}
+        for feature_name, featured_packages in poet.features.items():
+            extras[feature_name] = []
+
+            for package in featured_packages:
+                for dep in poet.dependencies:
+                    if dep.name == package:
+                        extras[feature_name].append(dep.normalized_name)
+
+        return extras
 
     def _packages(self, poet):
         includes = poet.include

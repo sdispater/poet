@@ -17,8 +17,18 @@ class Lock(Poet):
         packages = self._config['package']
 
         for package in packages:
-            dep = Dependency(package['name'], package['version'])
-            pip_dep = PipDependency(package['name'], package['version'], package.get('checksum'))
+            dep = Dependency(
+                package['name'],
+                package['version'],
+                optional=package.get('optional')
+            )
+            pip_dep = PipDependency(
+                package['name'],
+                package['version'],
+                category=package['category'],
+                optional=package.get('optional'),
+                checksum=package.get('checksum')
+            )
 
             if package['category'] == 'dev':
                 self._dev_dependencies.append(dep)
@@ -27,3 +37,4 @@ class Lock(Poet):
                 self._dependencies.append(dep)
                 self._pip_dependencies.append(pip_dep)
 
+        self._features = self._config.get('features', {})

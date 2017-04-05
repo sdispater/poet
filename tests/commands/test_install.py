@@ -26,6 +26,7 @@ class InstallCommand(BaseCommand):
     Install and lock dependencies specified in the <comment>poetry.toml</comment> file.
 
     install
+        { --f|features=* : Features to install }
         {--no-dev : Do not install dev dependencies}
     """
 
@@ -44,7 +45,9 @@ class InstallCommand(BaseCommand):
 def test_install_default(mocker):
     sub = mocker.patch('subprocess.check_output')
     resolve = mocker.patch('piptools.resolver.Resolver.resolve')
+    reverse_dependencies = mocker.patch('piptools.resolver.Resolver.reverse_dependencies')
     resolve.return_value = [InstallRequirement.from_line('pendulum==1.2.0')]
+    reverse_dependencies.return_value = {}
     app = Application()
     app.add(InstallCommand())
 

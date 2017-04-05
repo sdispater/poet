@@ -5,18 +5,28 @@ from semantic_version import Spec, SpecItem, Version
 
 class Dependency(object):
 
-    def __init__(self, name, constraint):
+    def __init__(self, name, constraint, category='main', optional=False):
         self._name = name
         self._constraint = constraint
+        self._optional = optional
         self._normalized_constraint = self._normalize(constraint)
+        self._category = category
 
     @property
     def name(self):
         return self._name
+    
+    @property
+    def optional(self):
+        return self._optional
 
     @property
     def constraint(self):
         return self._constraint
+
+    @property
+    def category(self):
+        return self._category
 
     @property
     def pretty_constraint(self):
@@ -55,13 +65,20 @@ class Dependency(object):
         return normalized_name
 
     def is_vcs_dependency(self):
-        return isinstance(self._constraint, dict)
+        return isinstance(self._constraint, dict) and 'git' in self._constraint
 
     def _normalize(self, constraint):
         if self.is_vcs_dependency():
             return self._normalize_vcs_constraint(constraint)
 
-        constraint = Spec(constraint)
+        version = constraint
+        if isinstance(version, dict):
+            if 'optional' in version:
+                self._optional = version['optional']
+
+            version = version['version']
+
+        constraint = Spec(version)
         normalized = []
 
         for spec in constraint.specs:

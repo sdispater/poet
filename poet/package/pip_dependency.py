@@ -6,8 +6,11 @@ from .dependency import Dependency
 
 class PipDependency(Dependency):
 
-    def __init__(self, name, constraint, checksum=None):
-        super(PipDependency, self).__init__(name, constraint)
+    def __init__(self, name, constraint, category='main', optional=False, checksum=None):
+        # Normalizing name for easier dependencies resolving
+        name = name.replace('_', '-').lower()
+
+        super(PipDependency, self).__init__(name, constraint, category=category, optional=optional)
 
         self._checksum = checksum
 

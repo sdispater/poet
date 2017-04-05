@@ -40,6 +40,7 @@ class Poet(object):
         self._dev_dependencies = []
         self._pip_dependencies = []
         self._pip_dev_dependencies = []
+        self._features = {}
         self._scripts = {}
         self._license = None
         self._readme = None
@@ -145,6 +146,10 @@ class Poet(object):
         return self._pip_dev_dependencies
 
     @property
+    def features(self):
+        return self._features
+
+    @property
     def scripts(self):
         return self._scripts
 
@@ -200,9 +205,10 @@ class Poet(object):
         self._keywords = self._config['package'].get('keywords', [])
         self._python_versions = self._config['package']['python']
         self._dependencies = self._get_dependencies(self._config.get('dependencies', {}))
-        self._dev_dependencies = self._get_dependencies(self._config.get('dev-dependencies', {}))
+        self._dev_dependencies = self._get_dependencies(self._config.get('dev-dependencies', {}), category='dev')
         self._pip_dependencies = self._get_dependencies(self._config.get('dependencies', {}), 'pip')
-        self._pip_dev_dependencies = self._get_dependencies(self._config.get('dev-dependencies', {}), 'pip')
+        self._pip_dev_dependencies = self._get_dependencies(self._config.get('dev-dependencies', {}), 'pip', category='dev')
+        self._features = self._config.get('features', {})
         self._scripts = self._config.get('scripts', {})
 
         self._load_readme()
@@ -245,7 +251,7 @@ class Poet(object):
     def build(self, **options):
         self.check()
 
-        self._builder.build(self, **options)
+        self._builder.buiwld(self, **options)
 
     def check(self):
         """
@@ -331,11 +337,11 @@ class Poet(object):
                 'Git constraint should have one of [branch, rev, tag]'
             )
 
-    def _get_dependencies(self, dependencies, kind='default'):
+    def _get_dependencies(self, dependencies, kind='default', category='main'):
         keys = sorted(list(dependencies.keys()))
 
         klass = Dependency
         if kind == 'pip':
             klass = PipDependency
 
-        return [klass(k, dependencies[k]) for k in keys]
+        return [klass(k, dependencies[k], category=category) for k in keys]

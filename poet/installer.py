@@ -14,7 +14,7 @@ from piptools.resolver import Resolver
 from piptools.repositories import PyPIRepository
 from piptools.scripts.compile import get_pip_command
 from piptools.cache import DependencyCache
-from piptools.utils import is_pinned_requirement
+from piptools.utils import is_pinned_requirement, key_from_req
 
 from .locations import CACHE_DIR
 from .package.pip_dependency import PipDependency
@@ -27,11 +27,25 @@ class Installer(object):
         self._poet = command.poet
         self._repository = repository
 
-    def install(self, dev=True):
+    def install(self, features=None, dev=True):
+        """
+        Install packages defined in configuration files.
+        
+        If a lock file does not exist, it will lock dependencies
+        before installing them.
+        
+        :param features: Features to install
+        :type features: list or None
+        
+        :param dev: Whether to install dev dependencies or not
+        :type dev: bool
+        
+        :rtype: None 
+        """
         if not os.path.exists(self._poet.lock_file):
             self.lock(dev=dev)
 
-            return self.install(dev=dev)
+            return self.install(features=None, dev=dev)
 
         self._command.line('')
         self._command.line('<info>Installing dependencies</>')
@@ -43,8 +57,17 @@ class Installer(object):
         if dev:
             deps += lock.pip_dev_dependencies
 
+        featured_packages = set()
+        for feature, packages in lock.features.items():
+            if feature in features:
+                for package in packages:
+                    featured_packages.add(package.replace('_', '-').lower())
+
         for dep in deps:
             name = dep.name
+
+            if dep.optional and name not in featured_packages:
+                continue
 
             if dep.is_vcs_dependency():
                 constraint = dep.pretty_constraint
@@ -60,9 +83,12 @@ class Installer(object):
                     self._command.error('Error while installing [{}] ({})'.format(name, str(e)))
                     break
 
-    def update(self, packages=None, dev=True):
+    def update(self, packages=None, features=None, dev=True):
         if self._poet.is_lock():
             raise Exception('Update is only available with a poetry.toml file.')
+
+        if packages and features:
+            raise Exception('Cannot specify packages and features when updating.')
 
         self._command.line('')
         self._command.line('<info>Updating dependencies</>')
@@ -78,6 +104,15 @@ class Installer(object):
         deps = self._poet.pip_dependencies
         if dev:
             deps += self._poet.pip_dev_dependencies
+
+        featured_packages = set()
+        for feature, _packages in self._poet.features.items():
+            if feature in features:
+                for package in _packages:
+                    featured_packages.add(package.replace('_', '-').lower())
+
+        # Removing optional packages unless they are featured packages
+        deps = [dep for dep in deps if not dep.optional or dep.optional and dep.name in featured_packages]
 
         if packages:
             packages = [p for p in self._resolve(deps) if p['name'] in packages]
@@ -154,7 +189,12 @@ class Installer(object):
                     break
 
         if not error:
-            self._write_lock(packages)
+            features = {}
+            for name, featured_packages in self._poet.features.items():
+                name = name.replace('_', '-').lower()
+                features[name] = [p.replace('_', '-').lower() for p in featured_packages]
+
+            self._write_lock(packages, features)
 
     def lock(self, dev=True):
         if self._poet.is_lock():
@@ -170,8 +210,12 @@ class Installer(object):
             deps += self._poet.pip_dev_dependencies
 
         packages = self._resolve(deps)
+        features = {}
+        for name, featured_packages in self._poet.features.items():
+            name = name.replace('_', '-').lower()
+            features[name] = [p.replace('_', '-').lower() for p in featured_packages]
 
-        self._write_lock(packages)
+        self._write_lock(packages, features)
 
     def _resolve(self, deps):
         constraints = [dep.as_requirement() for dep in deps]
@@ -187,10 +231,24 @@ class Installer(object):
         matches = resolver.resolve()
         pinned = [m for m in matches if not m.editable and is_pinned_requirement(m)]
         unpinned = [m for m in matches if m.editable or not is_pinned_requirement(m)]
+        reversed_dependencies = resolver.reverse_dependencies(matches)
+
+        # Complete reversed dependencies with cache
+        cache = resolver.dependency_cache.cache
+        for m in unpinned:
+            name = key_from_req(m.req)
+            dependencies = cache[name][list(cache[name].keys())[0]]
+            for dep in dependencies:
+                dep = dep.replace('_', '-').lower()
+                if dep not in reversed_dependencies:
+                    reversed_dependencies[dep] = set()
+
+                reversed_dependencies[dep].add(name.replace('_', '-').lower())
+
         hashes = resolver.resolve_hashes(pinned)
         packages = []
         for m in matches:
-            name = m.req.name
+            name = key_from_req(m.req)
             version = str(m.req.specifier)
             if m in unpinned:
                 url, specifier = m.link.url.split('@')
@@ -202,11 +260,50 @@ class Installer(object):
                 version = version.replace('==', '')
                 checksum = list(hashes[m])
 
+            # Figuring out category and optionality
+            category = None
+            optional = False
+
+            # Checking if it's a main dependency
+            for dep in deps:
+                if dep.name == name:
+                    category = dep.category
+                    optional = dep.optional
+                    break
+
+            if not category:
+                def _category(child):
+                    optional = False
+                    category = None
+                    for parent in reversed_dependencies[child]:
+                        for dep in deps:
+                            if dep.name != parent:
+                                continue
+
+                            optional = dep.optional
+
+                            if dep.category == 'main':
+                                # Dependency is given by at least one main package
+                                # We flag it as main
+                                return 'main', optional
+
+                            return 'dev', optional
+
+                        category, optional = _category(parent)
+
+                        if category is not None:
+                            return category, optional
+
+                    return category, optional
+
+                category, optional = _category(name)
+
             package = {
                 'name': name,
                 'version': version,
                 'checksum': checksum,
-                'category': 'main'
+                'category': category,
+                'optional': optional
             }
 
             packages.append(package)
@@ -226,6 +323,7 @@ class Installer(object):
 
                 revision = subprocess.check_output(['git', 'rev-parse', rev], stderr=devnull)
 
+            # Getting info
             revision = revision.decode().strip()
             version = {
                 'git': url,
@@ -240,7 +338,7 @@ class Installer(object):
 
         return version
 
-    def _write_lock(self, packages):
+    def _write_lock(self, packages, features):
         self._command.line('  - <info>Writing dependencies</>')
 
         output = {
@@ -248,7 +346,8 @@ class Installer(object):
                 'name': self._poet.name,
                 'version': self._poet.version
             },
-            'package': []
+            'package': [],
+            'features': features
         }
 
         for package in packages:
@@ -256,7 +355,8 @@ class Installer(object):
                 'name': package['name'],
                 'version': package['version'],
                 'checksum': package.get('checksum'),
-                'category': package['category']
+                'category': package['category'],
+                'optional': package['optional']
             })
 
         with open(self._poet.lock_file, 'w') as f:
