@@ -209,6 +209,9 @@ class Builder(object):
         dependencies = poet.dependencies
 
         for dependency in dependencies:
+            if dependency.optional:
+                continue
+
             requires.append(dependency.normalized_name)
 
         return requires

@@ -1,5 +1,11 @@
 # Change Log
 
+## [Unreleased]
+
+### Fixed
+
+- Fixed optional dependencies being set in the `install_requires` section.
+
 ## [0.3.0] - 2017-04-11
 
 ### Added
