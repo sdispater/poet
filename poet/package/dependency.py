@@ -96,7 +96,7 @@ class Dependency(object):
 
             version = version['version']
 
-        constraint = Spec(version)
+        constraint = self._spec(version)
         normalized = []
 
         for spec in constraint.specs:
@@ -148,6 +148,12 @@ class Dependency(object):
         # Neither setuptools nor distutils support VCS constraint
         # So by default we return nothing
         return
+
+    def _spec(self, version):
+        try:
+            return Spec(version)
+        except ValueError:
+            return Spec(str(Version.coerce(version)))
 
     def __repr__(self):
         return '<{} {}>'.format(self.__class__.__name__, self.normalized_name)
