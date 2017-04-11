@@ -47,7 +47,7 @@ class Installer(object):
         if not os.path.exists(self._poet.lock_file):
             self.lock(dev=dev)
 
-            return self.install(features=None, dev=dev)
+            return self.install(features=features, dev=dev)
 
         self._command.line('')
         self._command.line('<info>Installing dependencies</>')
