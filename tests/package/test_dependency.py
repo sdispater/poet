@@ -53,3 +53,21 @@ def test_normalized_name():
     dep = Dependency('foo', '~1.2')
 
     assert 'foo>=1.2.0,<1.3.0' == dep.normalized_name
+
+
+def test_accepts_prereleases():
+    dep = Dependency('foo', '1.2.3')
+
+    assert not dep.accepts_prereleases()
+
+    dep = Dependency('foo', '1.2.3-beta')
+
+    assert dep.accepts_prereleases()
+
+    dep = Dependency('foo', '1.2.3-rc.2')
+
+    assert dep.accepts_prereleases()
+
+    dep = Dependency('foo', '^1.2.3-rc.2')
+
+    assert dep.accepts_prereleases()

@@ -2,6 +2,8 @@
 
 from semantic_version import Spec, SpecItem, Version
 
+from ..version_parser import VersionParser
+
 
 class Dependency(object):
 
@@ -9,8 +11,9 @@ class Dependency(object):
         self._name = name
         self._constraint = constraint
         self._optional = optional
-        self._normalized_constraint = self._normalize(constraint)
+        self._accepts_prereleases = False
         self._category = category
+        self._normalized_constraint = self._normalize(constraint)
 
     @property
     def name(self):
@@ -67,8 +70,23 @@ class Dependency(object):
     def is_vcs_dependency(self):
         return isinstance(self._constraint, dict) and 'git' in self._constraint
 
+    def accepts_prereleases(self):
+        return self._accepts_prereleases
+
     def _normalize(self, constraint):
+        """
+        Normalizes the constraint so that it can be understood
+        by the underlying system.
+        
+        :param constraint: The dependency constraint.
+        :type constraint: str or dict
+        
+        :rtype: str
+        """
         if self.is_vcs_dependency():
+            # Any VCS dependency is considered prerelease
+            self._is_prerelease = True
+
             return self._normalize_vcs_constraint(constraint)
 
         version = constraint
@@ -82,7 +100,14 @@ class Dependency(object):
         normalized = []
 
         for spec in constraint.specs:
-            major, minor, patch = spec.spec.major, spec.spec.minor, spec.spec.patch
+            version = spec.spec
+
+            if VersionParser.parse_stability(version) == 'dev':
+                self._accepts_prereleases = True
+
+            major, minor, patch, prerelease = (
+                version.major, version.minor, version.patch, version.prerelease
+            )
             current = '{}.{}.{}'.format(major, minor or 0, patch or 0)
             current = Version(current)
 
@@ -94,6 +119,9 @@ class Dependency(object):
                 else:
                     upper = current.next_patch()
 
+                if prerelease:
+                    current = str(current) + '{}'.format(''.join(prerelease))
+
                 normalized.append('>={},<{}'.format(current, upper))
             elif spec.kind == SpecItem.KIND_TILDE:
                 if minor is None and patch is None:
@@ -104,8 +132,15 @@ class Dependency(object):
                 upper = '{}.{}.{}'.format(*upper)
 
                 normalized.append('>={},<{}'.format(current, upper))
+
+                if prerelease:
+                    current = str(current) + '{}'.format(''.join(prerelease))
             else:
-                normalized.append(str(spec))
+                current = spec.kind + str(current)
+                if prerelease:
+                    current += '{}'.format(''.join(prerelease))
+
+                normalized.append(current)
 
         return ','.join(normalized)
 

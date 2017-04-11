@@ -54,4 +54,4 @@ class PipDependency(Dependency):
 
             return '{}@{}#egg={}'.format(repo, revision, self._name)
 
-        raise ValueError('Unsupport VCS.')
+        raise ValueError('Unsupported VCS.')

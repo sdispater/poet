@@ -22,6 +22,8 @@ from .package.pip_dependency import PipDependency
 
 class Installer(object):
 
+    UNSAFE = ['setuptools']
+
     def __init__(self, command, repository):
         self._command = command
         self._poet = command.poet
@@ -218,6 +220,13 @@ class Installer(object):
         self._write_lock(packages, features)
 
     def _resolve(self, deps):
+        # Checking if we should active prereleases
+        prereleases = False
+        for dep in deps:
+            if dep.accepts_prereleases():
+                prereleases = True
+                break
+
         constraints = [dep.as_requirement() for dep in deps]
 
         command = get_pip_command()
@@ -226,7 +235,8 @@ class Installer(object):
         self._command.line('  - <info>Resolving dependencies</>')
         resolver = Resolver(
             constraints, PyPIRepository(opts, command._build_session(opts)),
-            cache=DependencyCache(CACHE_DIR)
+            cache=DependencyCache(CACHE_DIR),
+            prereleases=prereleases
         )
         matches = resolver.resolve()
         pinned = [m for m in matches if not m.editable and is_pinned_requirement(m)]
@@ -252,6 +262,9 @@ class Installer(object):
         packages = []
         for m in matches:
             name = key_from_req(m.req)
+            if name in self.UNSAFE:
+                continue
+
             version = str(m.req.specifier)
             if m in unpinned:
                 url, specifier = m.link.url.split('@')
@@ -266,6 +279,7 @@ class Installer(object):
             # Figuring out category and optionality
             category = None
             optional = False
+            ignored = False
 
             # Checking if it's a main dependency
             for dep in deps:
@@ -276,28 +290,32 @@ class Installer(object):
 
             if not category:
                 def _category(child):
-                    optional = False
-                    category = None
-                    for parent in reversed_dependencies.get(child, set()):
+                    opt = False
+                    cat = None
+                    parents = reversed_dependencies.get(child, set())
+                    for parent in parents:
                         for dep in deps:
                             if dep.name != parent:
                                 continue
 
-                            optional = dep.optional
+                            if dep.name in self.UNSAFE and len(parent) == 1:
+                                return cat, opt, True
+
+                            opt = dep.optional
 
                             if dep.category == 'main':
                                 # Dependency is given by at least one main package
                                 # We flag it as main
-                                return 'main', optional
+                                return 'main', opt
 
-                            return 'dev', optional
+                            return 'dev', opt
 
-                        category, optional = _category(parent)
+                        cat, op = _category(parent)
 
-                        if category is not None:
-                            return category, optional
+                        if cat is not None:
+                            return cat, opt
 
-                    return category, optional
+                    return cat, opt
 
                 category, optional = _category(name)
 
