@@ -15,7 +15,7 @@ from .commands import (
     SearchCommand,
     UpdateCommand
 )
-from .commands.make import MakeSetupCommand
+from .commands.make import MakeSetupCommand, MakeRequirementsCommand
 
 
 class Application(BaseApplication):
@@ -35,6 +35,7 @@ class Application(BaseApplication):
             InitCommand(),
             InstallCommand(),
             LockCommand(),
+            MakeRequirementsCommand(),
             MakeSetupCommand(),
             PackageCommand(),
             PublishCommand(),
@@ -42,3 +43,7 @@ class Application(BaseApplication):
             SearchCommand(),
             UpdateCommand()
         ]
+
+
+if __name__ == '__main__':
+    Application().run()

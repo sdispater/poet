@@ -5,12 +5,6 @@ python:
   - "3.6"
   - "pypy"
 
-before_install:
-  - pip install pip -U
-  - pip install pypoet
-  - poet make:setup -v
-  - pip uninstall pypoet -y
-
 install:
   - |
       if [ "$TRAVIS_PYTHON_VERSION" = "pypy" ]; then
@@ -28,9 +22,10 @@ install:
   - pip install pip -U
   - pip install setuptools -U
   - pip install codecov
-  - python setup.py develop
-  - poet --version
-  - poet install -v
+  - pip install pypoet # Install current stable version (install dependencies)
+  - pip uninstall pypoet -y
+  - python -m poet.console.application --version
+  - python -m poet.console.application install -v
 
 script: py.test --cov=poet --cov-config=.coveragerc tests/
 

@@ -24,3 +24,4 @@ nosetests.xml
 /setup.py
 /app.py
 /poetry.lock
+/requirements.txt
