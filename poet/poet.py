@@ -251,7 +251,7 @@ class Poet(object):
     def build(self, **options):
         self.check()
 
-        self._builder.buiwld(self, **options)
+        self._builder.build(self, **options)
 
     def check(self):
         """
