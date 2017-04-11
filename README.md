@@ -127,9 +127,24 @@ This ensures that everyone using the library will get the same versions of the d
 
 If there is no `poetry.lock` file, Poet will create one after dependency resolution.
 
+You can specify to the command that yo do not want the development dependencies installed by passing
+the `--no-dev` option.
+
+```bash
+poet install --no-dev
+```
+
+You can also specify the features you want installed by passing the `--f|--features` option (See [Features](#features) for more info)
+
+```bash
+poet install --features "mysql pgsql"
+poet install -f mysql -f pgsql
+```
+
 #### Options
 
 * `--no-dev`: Do not install dev dependencies.
+* `-f|--features  Features to install (multiple values allowed)
 * `--index`: The index to use when installing packages.
 
 
@@ -415,6 +430,37 @@ poet = 'poet:app.run'
 
 Here, we will have the `poet` script installed which will execute `app.run` in the `poet` package.
 
+### `features`
+
+Poet supports features to allow expression of:
+
+* optional dependencies, which enhance a package, but are not required; and
+* clusters of optional dependencies.
+
+```toml
+[package]
+name = "awesome"
+
+[features]
+mysql = ["mysqlclient"]
+pgsql = ["psycopg2"]
+
+[dependencies]
+# These packages are mandatory and form the core of this package’s distribution.
+mandatory = "^1.0"
+
+# A list of all of the optional dependencies, some of which are included in the
+# above `features`. They can be opted into by apps.
+psycopg2 = { version = "^2.7", optional = true }
+mysqlclient = { version = "^1.3", optional = true }
+```
+
+When installing packages, you can specify features by using the `-f|--features` option:
+
+```bash
+poet install --features "mysql pgsql"
+poet install -f mysql -f pgsql
+```
 
 ## Resources
 
