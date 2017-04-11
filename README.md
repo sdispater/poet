@@ -5,6 +5,8 @@ Poet helps you declare, manage and install dependencies of Python projects, ensu
 The package is **highly experimental** at the moment so expect things to change and break. However, if you feel adventurous
 I'd gladly appreciate feedback and pull requests.
 
+![Poet Install](https://raw.githubusercontent.com/sdispater/poet/master/assets/poet-install.gif)
+
 ## Installation
 
 ```bash
@@ -284,7 +286,14 @@ The readme file of the package. **Required**
 
 The file can be either `README.rst` or `README.md`.
 If it's a markdown file you have to install the [pandoc](https://github.com/jgm/pandoc) utility so that it can be automatically
-converted to a RestricturedText file.
+converted to a RestructuredText file.
+
+You also need to have the [pypandoc](https://pypi.python.org/pypi/pypandoc/) package installed. If you install `poet` via
+`pip` you can use the `markdown-readme` extra to do so.
+
+```bash
+pip install pypoet[markdown-readme]
+```
 
 #### homepage
 
