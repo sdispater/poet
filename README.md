@@ -1,4 +1,4 @@
-# Poet
+# Poet: Dependency Management for Python
 
 Poet helps you declare, manage and install dependencies of Python projects, ensuring you have the right stack everywhere.
 
@@ -84,7 +84,7 @@ Even for seasoned developers it might be cumbersome at times to create all files
 So I wanted a tool that would limit everything to a single configuration file to do everything: dependency management, packaging
 and publishing.
 
-I takes inspiration in tools that exist in other languages, like `composer` (PHP) or `cargo` (Rust).
+It takes inspiration in tools that exist in other languages, like `composer` (PHP) or `cargo` (Rust).
 
 Note that there is no magic here, `poet` uses existing tools (`pip`, `twine`, `setuptools`, `distutils`, `pip-tools`) under the hood
 to achieve that in a more intuitive way.
