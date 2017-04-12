@@ -1,5 +1,7 @@
 # Poet: Dependency Management for Python
 
+![Poet build status](https://travis-ci.org/sdispater/poet.svg)
+
 Poet helps you declare, manage and install dependencies of Python projects, ensuring you have the right stack everywhere.
 
 The package is **highly experimental** at the moment so expect things to change and break. However, if you feel adventurous
