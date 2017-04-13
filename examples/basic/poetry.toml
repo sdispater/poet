@@ -1,0 +1,27 @@
+[package]
+name = "basic-example"
+version = "0.1.0"
+description = "Basic example"
+
+license = "MIT"
+
+authors = [
+    "Sébastien Eustace <sebastien@eustace.io>"
+]
+
+readme = "README.rst"
+
+homepage = "https://github.com/sdispater/poet"
+
+keywords = ['packaging', 'poet']
+
+include = ['basic_example/**/*', 'my_module.py']
+
+python = ["^3.5"]
+
+
+[dependencies]
+requests = "^2.13"
+
+[dev-dependencies]
+pytest = "^3.0"

@@ -24,7 +24,7 @@ class Poet(object):
 
     def __init__(self, path, builder=Builder()):
         self._path = path
-        self._dir = os.path.dirname(path)
+        self._dir = os.path.realpath(os.path.dirname(path))
         self._builder = builder
         self._git_config = None
 

@@ -28,6 +28,7 @@ kwargs = dict(
     classifiers={classifiers},
     entry_points={entry_points},
     install_requires={install_requires},
+    tests_require={tests_require},
     extras_require={extras_require},
     packages={packages},
     py_modules={py_modules},
@@ -113,6 +114,14 @@ class Builder(object):
             command.main(command_args)
 
     def _setup(self, poet, **options):
+        """
+        Builds the setup kwargs base on the Poet instance
+        
+        :param poet: The Poet instance for which to build.
+        :type poet: poet.poet.Poet
+        
+        :rtype: dict
+        """
         setup_kwargs = {
             'name': poet.name,
             'version': poet.version,
@@ -135,7 +144,7 @@ class Builder(object):
         setup_kwargs['entry_points'] = self._entry_points(poet)
 
         setup_kwargs['install_requires'] = self._install_requires(poet)
-
+        setup_kwargs['tests_require'] = self._tests_require(poet)
         setup_kwargs['extras_require'] = self._extras_require(poet)
 
         setup_kwargs.update(self._packages(poet))
@@ -160,13 +169,15 @@ class Builder(object):
         return ' '.join(poet.keywords or [])
 
     def _classifiers(self, poet):
-        classifiers = []
-
-        classifiers += self._classifiers_versions(poet)
-
-        return classifiers
-
-    def _classifiers_versions(self, poet):
+        """
+        Builds the classifiers list from the
+        specified Python versions.
+        
+        :param poet: The Poet instance for which to build.
+        :type poet: poet.poet.Poet
+        
+        :rtype: list
+        """
         classifers = ['Programming Language :: Python']
         compatible_versions = {}
 
@@ -195,6 +206,14 @@ class Builder(object):
         return classifers
 
     def _entry_points(self, poet):
+        """
+        Builds the entry points
+        
+        :param poet: The Poet instance for which to build.
+        :type poet: poet.poet.Poet
+        
+        :rtype: list
+        """
         entry_points = {
             'console_scripts': []
         }
@@ -205,6 +224,14 @@ class Builder(object):
         return entry_points
 
     def _install_requires(self, poet):
+        """
+        Builds the dependencies list.
+        
+        :param poet: The Poet instance for which to build.
+        :type poet: poet.poet.Poet
+        
+        :rtype: dict
+        """
         requires = []
         dependencies = poet.dependencies
 
@@ -216,7 +243,36 @@ class Builder(object):
 
         return requires
 
+    def _tests_require(self, poet):
+        """
+        Builds the dev dependencies list.
+        
+        :param poet: The Poet instance for which to build.
+        :type poet: poet.poet.Poet
+        
+        :rtype: dict
+        """
+        requires = []
+        dependencies = poet.dev_dependencies
+
+        for dependency in dependencies:
+            if dependency.optional:
+                continue
+
+            requires.append(dependency.normalized_name)
+
+        return requires
+
     def _extras_require(self, poet):
+        """
+        Builds the extras dictionary from
+        the configured features.
+        
+        :param poet: The Poet instance for which to build.
+        :type poet: poet.poet.Poet
+        
+        :rtype: dict
+        """
         if not poet.features:
             return {}
 
@@ -232,11 +288,24 @@ class Builder(object):
         return extras
 
     def _packages(self, poet):
+        """
+        Builds the packages and modules list
+        based on the include and exclude sections.
+        
+        It will also register files that need to be put
+        in the MANIFEST.in file.
+        
+        :param poet: The Poet instance for which to build.
+        :type poet: poet.poet.Poet
+        
+        :rtype: dict 
+        """
         includes = poet.include
         packages = []
         modules = []
         crawled = []
         excluded = []
+        base_path = Path(poet.base_dir)
 
         for exclude in poet.exclude + poet.ignore:
             if not exclude:
@@ -245,18 +314,19 @@ class Builder(object):
             if exclude.startswith('/'):
                 exclude = exclude[1:]
 
-            for exc in Path().glob(exclude):
+            for exc in base_path.glob(exclude):
                 if exc.suffix == '.py':
+                    exc = exc.relative_to(base_path)
                     excluded.append('.'.join(exc.with_suffix('').parts))
 
         for include in includes:
             dirs = []
             others = []
-            for element in Path().glob(include):
+            for element in base_path.glob(include):
                 if element.is_dir():
-                    dirs.append(element)
+                    dirs.append(element.relative_to(base_path))
                 else:
-                    others.append(element)
+                    others.append(element.relative_to(base_path))
 
             m = re.match('^(.+)/\*\*/\*(\..+)?$', include)
             if m:
@@ -271,9 +341,10 @@ class Builder(object):
                     continue
 
                 # We have a package
-                if (dir / '__init__.py').exists():
+                real_dir = base_path / dir
+                if (real_dir / '__init__.py').exists():
                     children = [
-                        c for c in dir.glob('*.py')
+                        c.relative_to(base_path) for c in real_dir.glob('*.py')
                     ]
 
                     filtered_children = [c for c in children if '.'.join(c.parts) not in excluded]
@@ -299,9 +370,10 @@ class Builder(object):
                     self._manifest.append('include {}\n'.format(element.as_posix()))
                 elif element.name == '__init__.py':
                     dir = element.parent
+                    real_dir = base_path / dir
                     children = [
-                        c
-                        for c in dir.glob('*.py')
+                        c.relative_to(base_path)
+                        for c in real_dir.glob('*.py')
                         if c.name != '__init__.py'
                     ]
 
