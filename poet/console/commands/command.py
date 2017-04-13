@@ -63,6 +63,7 @@ class Command(BaseCommand):
         """
         # Adding warning style
         self.set_style('warning', 'black', 'yellow')
+        self.set_style('question', 'blue')
 
         index = self.option('index')
 

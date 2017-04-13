@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import os
+import re
+import subprocess
 import toml
 
 from collections import OrderedDict
@@ -109,6 +111,8 @@ in the current directory.
 
         license = self.ask(question)
 
+        self.line('')
+
         requirements = []
 
         question = '<question>Would you like to define your dependencies' \
@@ -158,17 +162,15 @@ in the current directory.
         output += '\n'
 
         if requirements:
-            config = {}
-            config['dependencies'] = requirements
+            config = {'dependencies': requirements}
 
             output += toml.dumps(config)
             output += '\n'
 
         if dev_requirements:
-            config = {}
-            config['dev-dependencies'] = dev_requirements
-
-        output += toml.dumps(config) + '\n'
+            config = {'dev-dependencies': dev_requirements}
+            output += toml.dumps(config)
+            output += '\n'
 
         if self.input.is_interactive():
             self.line('<info>Generated file</>')
@@ -214,7 +216,8 @@ in the current directory.
                 result.append(requirement['name'] + ' ' + requirement['version'])
 
         version_parser = VersionParser()
-        package = self.ask('Search for a package: ')
+        question = self.create_question('Search for a package: ')
+        package = self.ask(question)
         while package is not None:
             matches = self._find_packages(package)
 
@@ -228,9 +231,10 @@ in the current directory.
                 for found_package in matches:
                     choices.append(found_package['name'])
 
-                    if found_package['name'] == package:
-                        exact_match = True
-                        break
+                    # Removing exact match feature for now
+                    # if found_package['name'] == package:
+                    #     exact_match = True
+                    #     break
 
                 if not exact_match:
                     self.line(
@@ -314,4 +318,15 @@ in the current directory.
         return parser.parse_name_version_pairs(requirements)
 
     def git_config(self):
-        return self.poet.git_config
+        config_list = subprocess.check_output(
+            ['git', 'config', '-l']
+        ).decode()
+
+        git_config = {}
+
+        m = re.findall('(?ms)^([^=]+)=(.*?)$', config_list)
+        if m:
+            for group in m:
+                git_config[group[0]] = group[1]
+
+        return git_config
