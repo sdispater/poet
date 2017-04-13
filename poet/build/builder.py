@@ -8,7 +8,7 @@ from setuptools.dist import Distribution
 from pip.commands.wheel import WheelCommand
 from semantic_version import Spec, Version
 
-from .._compat import Path
+from .._compat import Path, PY2, encode, decode
 
 
 SETUP_TEMPLATE = """# -*- coding: utf-8 -*-
@@ -157,9 +157,16 @@ class Builder(object):
     def _author(self, poet):
         m = self.AUTHOR_REGEX.match(poet.authors[0])
 
+        name = m.group('name')
+        email = m.group('email')
+
+        if PY2:
+            name = encode(name)
+            email = encode(email)
+
         return {
-            'author': m.group('name'),
-            'author_email': m.group('email')
+            'author': name,
+            'author_email': email
         }
 
     def _url(self, poet):
