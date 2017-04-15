@@ -5,6 +5,11 @@ python:
   - "3.6"
   - "pypy"
 
+addons:
+  apt:
+    packages:
+      - pandoc
+
 install:
   - |
       if [ "$TRAVIS_PYTHON_VERSION" = "pypy" ]; then
