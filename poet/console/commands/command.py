@@ -6,6 +6,7 @@ import glob
 import distutils
 
 from cleo import Command as BaseCommand, InputOption
+from jinja2 import Environment, PackageLoader
 
 from ...repositories import PyPiRepository
 from ...poet import Poet
@@ -19,6 +20,12 @@ class Command(BaseCommand):
         self._poet = None
         self._repository = PyPiRepository()
         self._virtual_env = None
+        self._template_env = Environment(
+            loader=PackageLoader('poet', 'templates'),
+            autoescape=False,
+            lstrip_blocks=True,
+            trim_blocks=True
+        )
 
     @property
     def poet_file(self):
@@ -43,6 +50,13 @@ class Command(BaseCommand):
     @property
     def virtual_env(self):
         return self._virtual_env
+
+    @property
+    def template_env(self):
+        return self._template_env
+
+    def template(self, name):
+        return self._template_env.get_template(name)
 
     def has_lock(self):
         return os.path.exists(self.lock_file)

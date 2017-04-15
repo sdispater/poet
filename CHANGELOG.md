@@ -1,5 +1,16 @@
 # Change Log
 
+## [Unreleased]
+
+### Added
+
+- Added ability to create a default template in the `init` command.
+
+### Changed
+
+- Improved template for the `init` command.
+
+
 ## [0.3.2] - 2017-04-13
 
 ### Fixed

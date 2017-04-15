@@ -106,6 +106,12 @@ It will interactively ask you to fill in the fields, while using some smart defa
 poet init
 ```
 
+However, if you just want a basic template and fill the information directly, you can just do:
+
+```bash
+poet init default
+```
+
 #### Options
 
    * `--name`: Name of the package. 

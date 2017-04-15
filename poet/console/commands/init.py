@@ -3,7 +3,6 @@
 import os
 import re
 import subprocess
-import toml
 
 from collections import OrderedDict
 from pygments import highlight
@@ -21,6 +20,7 @@ class InitCommand(Command):
     Creates a basic <comment>poetry.toml</> file in current directory.
 
     init
+        { template? : Template to use }
         {--name= : Name of the package}
         {--description= : Description of the package}
         {--author= : Author name of the package}
@@ -50,6 +50,23 @@ in the current directory.
             formatter.format_block('Welcome to the Poet config generator', 'bg=blue;fg=white', True),
             ''
         ])
+
+        template = self.argument('template')
+        if template:
+            self.line([
+                '',
+                'Using <comment>{}</> template to create '
+                'your <info>poetry.toml</> config.'.format(template),
+                ''
+            ])
+
+            if template == 'default':
+                output = self.template('poetry.toml').render()
+
+                with open(self.poet_file, 'w') as fd:
+                    fd.write(output)
+
+            return
 
         self.line([
             '',
@@ -101,6 +118,11 @@ in the current directory.
 
         author = self.ask(question)
 
+        if not author:
+            authors = []
+        else:
+            authors = [author]
+
         license = self.option('license') or ''
 
         question = self.create_question(
@@ -133,44 +155,15 @@ in the current directory.
                 self._determine_requirements(self.option('dev-dependency'))
             )
 
-        config = OrderedDict([
-            ('package', OrderedDict([
-                ('name', name)
-            ]))
-        ])
-
-        output = toml.dumps(config)
-
-        config = {'version': version}
-        output += toml.dumps(config)
-
-        config = {}
-        if description:
-            config['description'] = description
-            output += toml.dumps(config)
-
-        config = {}
-        if author:
-            config['authors'] = [author]
-            output += toml.dumps(config)
-
-        config = {}
-        if license:
-            config['license'] = license
-            output += toml.dumps(config)
-
-        output += '\n'
-
-        if requirements:
-            config = {'dependencies': requirements}
-
-            output += toml.dumps(config)
-            output += '\n'
-
-        if dev_requirements:
-            config = {'dev-dependencies': dev_requirements}
-            output += toml.dumps(config)
-            output += '\n'
+        output = self.template('poetry.toml').render(
+            name=name,
+            version=version,
+            description=description,
+            authors=authors,
+            license=license,
+            dependencies=requirements,
+            dev_dependencies=dev_requirements
+        )
 
         if self.input.is_interactive():
             self.line('<info>Generated file</>')
