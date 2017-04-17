@@ -17,7 +17,8 @@ license = "{{ license }}"
 {% if authors %}
 authors = [
     {% for author in authors %}
-    "{{ author }}"
+    "{{ author }}"{% if not loop.last %},{% endif %}
+
     {% endfor %}
 ]
 {% else %}

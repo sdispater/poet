@@ -12,7 +12,8 @@ version = "{{ version }}"
 {% for name in sorted(list(features.keys())) %}
 {{ name }} = [
     {% for package in sorted(features[name]) %}
-    "{{ package }}",
+    "{{ package }}"{% if not loop.last %},{% endif %}
+
     {% endfor %}
 ]
 {% endfor %}
@@ -34,7 +35,8 @@ optional = false
 {% if 'checksum' in package %}
 checksum = [
     {% for hash in package['checksum'] %}
-    "{{ hash }}",
+    "{{ hash }}"{% if not loop.last %},{% endif %}
+
     {% endfor %}
 ]
 {% else %}
@@ -43,7 +45,8 @@ checksum = []
 {% if package['python'] %}
 python = [
     {% for python in package['python'] %}
-    "{{ python }}",
+    "{{ python }}"{% if not loop.last %},{% endif %}
+
     {% endfor %}
 ]
 {% else %}
