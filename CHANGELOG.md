@@ -4,6 +4,7 @@
 
 ### Added
 
+- Added support for Python version restricted dependencies: `pathlib2 = { version = "^2.2", python = "~2.7" }`
 - Added ability to create a default template in the `init` command.
 
 ### Changed
