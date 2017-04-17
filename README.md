@@ -436,6 +436,20 @@ Here's an example of specifying that you want to use the latest commit on a bran
 requests = { git = "https://github.com/kennethreitz/requests.git", branch = "next" }
 ```
 
+#### Python restricted dependencies
+
+You can also specify that a dependency should be installed only for specific Python versions:
+
+```toml
+[dependencies]
+pathlib2 = { version = "^2.2", python = "~2.7" }
+```
+
+```toml
+[dependencies]
+pathlib2 = { version = "^2.2", python = ["~2.7", "^3.2"] }
+```
+
 ### `scripts`
 
 This section describe the scripts or executable that will be installed when installing the package
