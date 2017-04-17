@@ -8,6 +8,7 @@ name = "{{ name }}"
 version = "{{ version }}"
 
 {% if features %}
+[features]
 {% for name in sorted(list(features.keys())) %}
 {{ name }} = [
     {% for package in sorted(features[name]) %}
