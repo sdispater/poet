@@ -7,12 +7,26 @@ from ..version_parser import VersionParser
 
 class Dependency(object):
 
-    def __init__(self, name, constraint, category='main', optional=False):
+    def __init__(self, name, constraint, category='main'):
         self._name = name
         self._constraint = constraint
-        self._optional = optional
+        self._optional = False
         self._accepts_prereleases = False
         self._category = category
+        self._python = [Spec('*')]
+
+        if isinstance(constraint, dict):
+            if 'python' in constraint:
+                python = constraint['python']
+
+                if not isinstance(python, list):
+                    python = [python]
+
+                self._python = [Spec(p) for p in python]
+
+            if 'optional' in constraint:
+                self._optional = constraint['optional']
+
         self._normalized_constraint = self._normalize(constraint)
 
     @property
@@ -30,6 +44,10 @@ class Dependency(object):
     @property
     def category(self):
         return self._category
+
+    @property
+    def python(self):
+        return self._python
 
     @property
     def pretty_constraint(self):
@@ -73,6 +91,9 @@ class Dependency(object):
     def accepts_prereleases(self):
         return self._accepts_prereleases
 
+    def is_python_restricted(self):
+        return self._python != [Spec('*')]
+
     def _normalize(self, constraint):
         """
         Normalizes the constraint so that it can be understood
@@ -91,9 +112,6 @@ class Dependency(object):
 
         version = constraint
         if isinstance(version, dict):
-            if 'optional' in version:
-                self._optional = version['optional']
-
             version = version['version']
 
         constraint = self._spec(version)
@@ -147,7 +165,7 @@ class Dependency(object):
     def _normalize_vcs_constraint(self, constraint):
         # Neither setuptools nor distutils support VCS constraint
         # So by default we return nothing
-        return
+        return ''
 
     def _spec(self, version):
         try:

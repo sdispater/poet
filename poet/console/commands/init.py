@@ -2,7 +2,6 @@
 
 import os
 import re
-import subprocess
 
 from collections import OrderedDict
 from pygments import highlight
@@ -12,7 +11,9 @@ from .command import Command
 from ...version_parser import VersionParser
 from ...version_selector import VersionSelector
 from ...utils.lexers import TOMLLexer
+from ...utils.helpers import call
 from ...build import Builder
+from ..._compat import encode
 
 
 class InitCommand(Command):
@@ -37,6 +38,7 @@ in the current directory.
 
 <info>poet init</info>
 """
+
     def __init__(self):
         self._git_config = None
 
@@ -311,9 +313,7 @@ in the current directory.
         return parser.parse_name_version_pairs(requirements)
 
     def git_config(self):
-        config_list = subprocess.check_output(
-            ['git', 'config', '-l']
-        ).decode()
+        config_list = call(['git', 'config', '-l'])
 
         git_config = {}
 

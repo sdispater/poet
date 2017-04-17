@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import tempfile
-import subprocess
-import toml
 
 import os
 import shutil
+import subprocess
 
 from hashlib import sha256
 from pip.download import unpack_url
@@ -18,6 +17,7 @@ from piptools.utils import is_pinned_requirement, key_from_req
 
 from .locations import CACHE_DIR
 from .package.pip_dependency import PipDependency
+from .utils.helpers import call
 
 
 class Installer(object):
@@ -68,22 +68,43 @@ class Installer(object):
         for dep in deps:
             name = dep.name
 
+            # Package is optional but is not featured
             if dep.optional and name not in featured_packages:
                 continue
+
+            # Checking Python version
+            if dep.is_python_restricted():
+                python_version = self._command.python_version
+                if not any([python_version in python for python in dep.python]):
+                    # If the package is not compatible
+                    # with the current Python version
+                    # we do not install
+                    if self._command.output.is_verbose():
+                        self._command.line(
+                            '  - Skipping <info>{}</> (Not needed for this Python version)'
+                            .format(name)
+                        )
+                    continue
 
             if dep.is_vcs_dependency():
                 constraint = dep.pretty_constraint
             else:
                 constraint = dep.normalized_constraint.replace('==', '')
 
-            self._command.line('  - Installing <info>{}</> (<comment>{}</>)'.format(name, constraint))
+            self._command.line(
+                '  - Installing <info>{}</> (<comment>{}</>)'
+                .format(name, constraint)
+            )
 
-            with open(os.devnull) as devnull:
-                try:
-                    subprocess.check_output([self._command.pip(), 'install', dep.normalized_name], stderr=devnull)
-                except subprocess.CalledProcessError as e:
-                    self._command.error('Error while installing [{}] ({})'.format(name, str(e)))
-                    break
+            try:
+                call([self._command.pip(), 'install', dep.normalized_name])
+            except subprocess.CalledProcessError as e:
+                self._command.error(
+                    'Error while installing [{}] ({})'
+                    .format(name, str(e))
+                )
+
+                break
 
     def update(self, packages=None, features=None, dev=True):
         if self._poet.is_lock():
@@ -182,13 +203,13 @@ class Installer(object):
 
             self._command.line('  - {} <info>{}</> ({})'.format(description, name, version))
 
-            with open(os.devnull) as devnull:
-                try:
-                    subprocess.check_output(cmd, stderr=devnull)
-                except subprocess.CalledProcessError as e:
-                    error = True
-                    self._command.error('Error while installing [{}] ({})'.format(name, str(e)))
-                    break
+            try:
+                call(cmd)
+            except subprocess.CalledProcessError as e:
+                error = True
+                self._command.error('Error while installing [{}] ({})'.format(name, str(e)))
+
+                break
 
         if not error:
             features = {}
@@ -279,7 +300,6 @@ class Installer(object):
             # Figuring out category and optionality
             category = None
             optional = False
-            ignored = False
 
             # Checking if it's a main dependency
             for dep in deps:
@@ -297,9 +317,6 @@ class Installer(object):
                         for dep in deps:
                             if dep.name != parent:
                                 continue
-
-                            if dep.name in self.UNSAFE and len(parent) == 1:
-                                return cat, opt, True
 
                             opt = dep.optional
 
@@ -327,12 +344,27 @@ class Installer(object):
                 category = 'main'
                 optional = False
 
+            if not isinstance(checksum, list):
+                checksum = [checksum]
+
+            # Retrieving Python restriction if any
+            python = self._get_pythons_for_package(
+                name, reversed_dependencies, deps
+            )
+            python = list(python)
+
+            if '*' in python:
+                # If at least one parent gave a wildcard
+                # Then it should be installed for any Python version
+                python = ['*']
+
             package = {
                 'name': name,
                 'version': version,
                 'checksum': checksum,
                 'category': category,
-                'optional': optional
+                'optional': optional,
+                'python': python
             }
 
             packages.append(package)
@@ -347,13 +379,11 @@ class Installer(object):
             unpack_url(Link(url), tmp_dir, download_dir=tmp_dir, only_download=True)
 
             os.chdir(tmp_dir)
-            with open(os.devnull) as devnull:
-                subprocess.check_output(['git', 'checkout', rev], stderr=devnull)
+            call(['git', 'checkout', rev])
 
-                revision = subprocess.check_output(['git', 'rev-parse', rev], stderr=devnull)
-
+            revision = call(['git', 'rev-parse', rev])
             # Getting info
-            revision = revision.decode().strip()
+            revision = revision.strip()
             version = {
                 'git': url,
                 'rev': revision
@@ -370,26 +400,47 @@ class Installer(object):
     def _write_lock(self, packages, features):
         self._command.line('  - <info>Writing dependencies</>')
 
-        output = {
-            'root': {
-                'name': self._poet.name,
-                'version': self._poet.version
-            },
-            'package': [],
-            'features': features
-        }
-
-        for package in packages:
-            output['package'].append({
-                'name': package['name'],
-                'version': package['version'],
-                'checksum': package.get('checksum'),
-                'category': package['category'],
-                'optional': package['optional']
-            })
+        content = self._generate_lock_content(packages, features)
 
         with open(self._poet.lock_file, 'w') as f:
-            f.write(toml.dumps(output))
+            f.write(content)
+
+    def _generate_lock_content(self, packages, features):
+        template = self._command.template('poetry.lock')
+
+        return template.render(
+            name=self._poet.name,
+            version=self._poet.version,
+            packages=packages,
+            features=features
+        )
+
+    def _get_pythons_for_package(self, name, reversed_dependencies, deps):
+        pythons = set()
+        if name not in reversed_dependencies:
+            # Main dependency
+            for dep in deps:
+                if name == dep.name:
+                    for p in dep.python:
+                        pythons.add(str(p))
+
+                    break
+
+            return pythons
+
+        parents = reversed_dependencies[name]
+
+        for parent in parents:
+            parent_pythons = self._get_pythons_for_package(
+                parent, reversed_dependencies, deps
+            )
+
+            pythons = pythons.union(parent_pythons)
+
+        if not len(pythons):
+            pythons.add('*')
+
+        return pythons
 
     @classmethod
     def _hash(cls, filename):

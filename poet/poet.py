@@ -3,7 +3,6 @@
 import re
 import os
 import toml
-import subprocess
 import warnings
 
 try:
@@ -15,6 +14,7 @@ from .exceptions.poet import MissingElement, InvalidElement
 from .version_parser import VersionParser
 from .build import Builder
 from .package import Dependency, PipDependency
+from .utils.helpers import call
 
 
 class Poet(object):
@@ -62,9 +62,7 @@ class Poet(object):
         if self._git_config is not None:
             return self._git_config
 
-        config_list = subprocess.check_output(
-            ['git', 'config', '-l']
-        ).decode()
+        config_list = call(['git', 'config', '-l'])
 
         self._git_config = {}
 

@@ -41,9 +41,11 @@ class InstallCommand(BaseCommand):
     def pip(self):
         return 'pip'
 
+    def python(self):
+        return 'python'
 
-def test_install_default(mocker):
-    sub = mocker.patch('subprocess.check_output')
+
+def test_install_default(mocker, check_output):
     resolve = mocker.patch('piptools.resolver.Resolver.resolve')
     reverse_dependencies = mocker.patch('piptools.resolver.Resolver.reverse_dependencies')
     resolve.return_value = [InstallRequirement.from_line('pendulum==1.2.0')]
@@ -58,7 +60,7 @@ def test_install_default(mocker):
     assert os.path.exists(DUMMY_LOCK)
     os.remove(DUMMY_LOCK)
 
-    sub.assert_called_once()
+    check_output.assert_called_once()
 
     output = command_tester.get_display()
     expected = """

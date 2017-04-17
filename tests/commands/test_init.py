@@ -6,7 +6,7 @@ import tempfile
 from cleo import CommandTester
 
 
-def test_basic_interactive(app, mocker, tmp_dir):
+def test_basic_interactive(app, mocker, tmp_dir, check_output):
     getcwd = mocker.patch('os.getcwd')
     getcwd.return_value = tmp_dir
 
@@ -35,6 +35,7 @@ def test_basic_interactive(app, mocker, tmp_dir):
 
     assert expected in output
     assert os.path.exists(os.path.join(tmp_dir, 'poetry.toml'))
+    check_output.assert_called_once()
 
 
 def test_default_template(app, mocker, tmp_dir):
