@@ -27,6 +27,9 @@ class Dependency(object):
             if 'optional' in constraint:
                 self._optional = constraint['optional']
 
+            if 'version' in constraint:
+                self._constraint = constraint['version']
+
         self._normalized_constraint = self._normalize(constraint)
 
     @property

@@ -81,15 +81,16 @@ class Installer(object):
                     # we do not install
                     if self._command.output.is_verbose():
                         self._command.line(
-                            '  - Skipping <info>{}</> (Not needed for this Python version)'
-                            .format(name)
+                            '  - Skipping <info>{}</> '
+                            '(Specifies Python <comment>{}</> and current Python is <comment>{}</>)'
+                            .format(name, ','.join([str(p) for p in dep.python]), python_version)
                         )
                     continue
 
             if dep.is_vcs_dependency():
                 constraint = dep.pretty_constraint
             else:
-                constraint = dep.normalized_constraint.replace('==', '')
+                constraint = dep.constraint.replace('==', '')
 
             self._command.line(
                 '  - Installing <info>{}</> (<comment>{}</>)'
@@ -425,6 +426,9 @@ class Installer(object):
                         pythons.add(str(p))
 
                     break
+
+            if not len(pythons):
+                pythons.add('*')
 
             return pythons
 

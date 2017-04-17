@@ -117,8 +117,8 @@ def test_optional_dependency():
     assert '>=1.2.3,<2.0.0' == dep.normalized_constraint
     assert 'foo>=1.2.3,<2.0.0' == dep.normalized_name
     assert dep.optional
-    assert constraint == dep.constraint
-    assert constraint == dep.pretty_constraint
+    assert '^1.2.3' == dep.constraint
+    assert '^1.2.3' == dep.pretty_constraint
     assert not dep.is_vcs_dependency()
     assert not dep.accepts_prereleases()
     assert ['*'] == [str(dep.python[0])]
@@ -136,8 +136,8 @@ def test_python_restricted_dependency():
     assert '>=1.2.3,<2.0.0' == dep.normalized_constraint
     assert 'foo>=1.2.3,<2.0.0' == dep.normalized_name
     assert not dep.optional
-    assert constraint == dep.constraint
-    assert constraint == dep.pretty_constraint
+    assert '^1.2.3' == dep.constraint
+    assert '^1.2.3' == dep.pretty_constraint
     assert not dep.is_vcs_dependency()
     assert not dep.accepts_prereleases()
     assert ['~2.7'] == [str(dep.python[0])]
