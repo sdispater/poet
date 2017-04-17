@@ -31,7 +31,8 @@ class Command(BaseCommand):
         )
         self._template_env.globals.update({
             'isinstance': isinstance,
-            'list': list
+            'list': list,
+            'sorted': sorted
         })
 
         self._python_version = None
