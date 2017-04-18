@@ -461,7 +461,7 @@ class Builder(object):
             if value is not None and not isinstance(value, (list, dict)):
                 parameters[key] = repr(value)
 
-        setup_template = template('setup.py.jinja2')
+        setup_template = template('setup.py')
         with open(dest, 'w') as f:
             f.write(setup_template.render(**parameters))
 

@@ -48,4 +48,7 @@ def template(name):
     
     :rtype: jinja2.Template 
     """
+    if not name.endswith('.jinja2'):
+        name += '.jinja2'
+
     return TEMPLATE_ENV.get_template(name)

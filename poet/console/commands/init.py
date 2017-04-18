@@ -11,9 +11,8 @@ from .command import Command
 from ...version_parser import VersionParser
 from ...version_selector import VersionSelector
 from ...utils.lexers import TOMLLexer
-from ...utils.helpers import call
+from ...utils.helpers import call, template
 from ...build import Builder
-from ..._compat import encode
 
 
 class InitCommand(Command):
@@ -53,17 +52,17 @@ in the current directory.
             ''
         ])
 
-        template = self.argument('template')
-        if template:
+        template_name = self.argument('template')
+        if template_name:
             self.line([
                 '',
                 'Using <comment>{}</> template to create '
-                'your <info>poetry.toml</> config.'.format(template),
+                'your <info>poetry.toml</> config.'.format(template_name),
                 ''
             ])
 
-            if template == 'default':
-                output = self.template('poetry.toml').render()
+            if template_name == 'default':
+                output = template('poetry.toml').render()
 
                 with open(self.poet_file, 'w') as fd:
                     fd.write(output)
@@ -157,7 +156,7 @@ in the current directory.
                 self._determine_requirements(self.option('dev-dependency'))
             )
 
-        output = self.template('poetry.toml').render(
+        output = template('poetry.toml.jinja2').render(
             name=name,
             version=version,
             description=description,

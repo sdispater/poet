@@ -17,7 +17,7 @@ from piptools.utils import is_pinned_requirement, key_from_req
 
 from .locations import CACHE_DIR
 from .package.pip_dependency import PipDependency
-from .utils.helpers import call
+from .utils.helpers import call, template
 
 
 class Installer(object):
@@ -407,9 +407,9 @@ class Installer(object):
             f.write(content)
 
     def _generate_lock_content(self, packages, features):
-        template = self._command.template('poetry.lock')
+        lock_template = template('poetry.lock')
 
-        return template.render(
+        return lock_template.render(
             name=self._poet.name,
             version=self._poet.version,
             packages=packages,
