@@ -9,6 +9,7 @@
 
 ### Changed
 
+- Improved `update` command by removing no longer necessary packages.
 - Improved template for the `init` command.
 
 

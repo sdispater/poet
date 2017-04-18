@@ -7,6 +7,7 @@ import shutil
 import subprocess
 
 from hashlib import sha256
+from packaging.utils import canonicalize_name
 from pip.download import unpack_url
 from pip.index import Link
 from piptools.resolver import Resolver
@@ -63,7 +64,7 @@ class Installer(object):
         for feature, packages in lock.features.items():
             if feature in features:
                 for package in packages:
-                    featured_packages.add(package.replace('_', '-').lower())
+                    featured_packages.add(canonicalize_name(package))
 
         for dep in deps:
             name = dep.name
@@ -133,10 +134,15 @@ class Installer(object):
         for feature, _packages in self._poet.features.items():
             if feature in features:
                 for package in _packages:
-                    featured_packages.add(package.replace('_', '-').lower())
+                    featured_packages.add(canonicalize_name(package))
 
         # Removing optional packages unless they are featured packages
-        deps = [dep for dep in deps if not dep.optional or dep.optional and dep.name in featured_packages]
+        deps = [
+            dep
+            for dep in deps
+            if not dep.optional
+               or dep.optional and dep.name in featured_packages
+        ]
 
         if packages:
             packages = [p for p in self._resolve(deps) if p['name'] in packages]
@@ -145,52 +151,34 @@ class Installer(object):
 
         deps = [PipDependency(p['name'], p['version']) for p in packages]
 
-        to_act_on = []
-        for i, dep in enumerate(deps):
-            action = None
-            from_ = None
-            found = False
-            for j, current_dep in enumerate(current_deps):
-                name = dep.name
-                current_name = current_dep.name
-                version = dep.normalized_constraint
-                current_version = current_dep.normalized_constraint
+        delete = not packages and not features
+        actions = self._resolve_update_actions(deps, current_deps, delete=delete)
 
-                if name == current_name:
-                    found = True
-
-                    if version == current_version:
-                        break
-
-                    action = 'update'
-                    from_ = current_dep
-                    break
-
-            if not found:
-                action = 'install'
-
-            if action:
-                to_act_on.append((action, from_, dep))
-
-        if not to_act_on:
+        if not actions:
             self._command.line('  - <info>Dependencies already up-to-date!</info>')
 
             return
 
         error = False
-        for action, from_, dep in to_act_on:
-            cmd = [self._command.pip(), 'install', dep.normalized_name]
+        for action, from_, dep in actions:
+            cmd = [self._command.pip()]
             description = 'Installing'
-            if action == 'update':
+
+            if action == 'remove':
+                description = 'Removing'
+                cmd += ['uninstall', dep.normalized_name, '-y']
+            elif action == 'update':
                 description = 'Updating'
-                cmd.append('-U')
+                cmd += ['install', dep.normalized_name, '-U']
+            else:
+                cmd += ['install', dep.normalized_name]
 
             name = dep.name
 
             if dep.is_vcs_dependency():
                 constraint = dep.pretty_constraint
             else:
-                constraint = dep.normalized_constraint.replace('==', '')
+                constraint = dep.constraint.replace('==', '')
 
             version = '<comment>{}</>'.format(constraint)
 
@@ -198,7 +186,7 @@ class Installer(object):
                 if from_.is_vcs_dependency():
                     constraint = from_.pretty_constraint
                 else:
-                    constraint = from_.normalized_constraint.replace('==', '')
+                    constraint = from_.constraint.replace('==', '')
 
                 version = '<comment>{}</> -> '.format(constraint) + version
 
@@ -208,15 +196,16 @@ class Installer(object):
                 call(cmd)
             except subprocess.CalledProcessError as e:
                 error = True
-                self._command.error('Error while installing [{}] ({})'.format(name, str(e)))
+                self._command.error('Error while updating [{}] ({})'.format(name, str(e)))
 
                 break
 
         if not error:
+            # If everything went well, we write down the lock file
             features = {}
             for name, featured_packages in self._poet.features.items():
-                name = name.replace('_', '-').lower()
-                features[name] = [p.replace('_', '-').lower() for p in featured_packages]
+                name = canonicalize_name(name)
+                features[name] = [canonicalize_name(p) for p in featured_packages]
 
             self._write_lock(packages, features)
 
@@ -236,8 +225,8 @@ class Installer(object):
         packages = self._resolve(deps)
         features = {}
         for name, featured_packages in self._poet.features.items():
-            name = name.replace('_', '-').lower()
-            features[name] = [p.replace('_', '-').lower() for p in featured_packages]
+            name = canonicalize_name(name)
+            features[name] = [canonicalize_name(p) for p in featured_packages]
 
         self._write_lock(packages, features)
 
@@ -274,11 +263,11 @@ class Installer(object):
 
             dependencies = cache[name][list(cache[name].keys())[0]]
             for dep in dependencies:
-                dep = dep.replace('_', '-').lower()
+                dep = canonicalize_name(dep)
                 if dep not in reversed_dependencies:
                     reversed_dependencies[dep] = set()
 
-                reversed_dependencies[dep].add(name.replace('_', '-').lower())
+                reversed_dependencies[dep].add(canonicalize_name(name))
 
         hashes = resolver.resolve_hashes(pinned)
         packages = []
@@ -371,6 +360,73 @@ class Installer(object):
             packages.append(package)
 
         return sorted(packages, key=lambda p: p['name'].lower())
+
+    def _resolve_update_actions(self, deps, current_deps, delete=True):
+        """
+        Determine actions on depenncies.
+        
+        :param deps: New dependencies
+        :type deps: list[poet.package.PipDependency]
+        
+        :param current_deps: Current dependencies
+        :type current_deps: list[poet.package.PipDependency]
+        
+        :param delete: Whether to add delete actions or not
+        :type delete: bool
+        
+        :return: List of actions to execute
+        :type: list[tuple]
+        """
+        actions = []
+        for dep in deps:
+            action = None
+            from_ = None
+            found = False
+
+            for current_dep in current_deps:
+                name = dep.name
+                current_name = current_dep.name
+                version = dep.normalized_constraint
+                current_version = current_dep.normalized_constraint
+
+                if name == current_name:
+                    # Existing dependency
+                    found = True
+
+                    if version == current_version:
+                        break
+
+                    # If version is different we mark it
+                    # as to be updated
+                    action = 'update'
+                    from_ = current_dep
+                    break
+
+            if not found:
+                # New dependency. We mark it as to be installed.
+                action = 'install'
+
+            if action:
+                actions.append((action, from_, dep))
+
+        if not delete:
+            return actions
+
+        # We need to check if we have to remove
+        # any dependency
+        for dep in current_deps:
+            found = False
+
+            for new_dep in deps:
+                if dep.name == new_dep.name:
+                    found = True
+
+                    break
+
+            if not found:
+                actions.append(('remove', None, dep))
+
+        return actions
 
     def _get_vcs_version(self, url, rev):
         tmp_dir = tempfile.mkdtemp()
