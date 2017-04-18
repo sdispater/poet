@@ -1,6 +1,6 @@
 [package]
 name = "pypoet"
-version = "0.3.2"
+version = "0.4.0-beta.0"
 description = "Poet helps you declare, manage and install dependencies of Python projects, ensuring you have the right stack everywhere."
 
 license = "MIT"
@@ -34,6 +34,7 @@ wheel = "^0.29"
 pip-tools = "^1.9.0"
 cleo = { git = "https://github.com/sdispater/cleo.git", branch = "develop" }
 jinja2 = "^2.9.6"
+packaging = "^16.8"
 pathlib2 = { version = "^2.2", python = "~2.7" }
 
 # Extras

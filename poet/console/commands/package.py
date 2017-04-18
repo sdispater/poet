@@ -3,6 +3,7 @@
 import os
 import shutil
 
+from ..._compat import Path
 from .command import Command
 
 
@@ -25,12 +26,19 @@ class PackageCommand(Command):
             if os.path.exists(egg_info):
                 shutil.rmtree(egg_info)
 
-        fmt = 'tar.gz'
+        self.line('')
+        self.line('Building <info>{}</> (<comment>{}</>)'.format(poet.name, poet.version))
+
+        poet.build(
+            universal=not self.option('no-universal'),
+            no_wheels=self.option('no-wheels')
+        )
 
         self.line('')
-        self.line('<info>Building <comment>{}-{}</></>'.format(poet.name, poet.version))
 
-        poet.build(universal=not self.option('no-universal'), no_wheels=self.option('no-wheels'))
+        dist = Path(self.poet_file).parent / 'dist'
+        releases = dist.glob('{}-{}*'.format(self.poet.name, self.poet.normalized_version))
+        for release in releases:
+            self.line('  - Created <comment>{}</>'.format(release.name))
 
-        self.line('<info><comment>{}-{}</> built!</>'.format(poet.name, poet.version))
         self.line('')

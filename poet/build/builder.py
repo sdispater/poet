@@ -2,13 +2,16 @@
 
 import os
 import re
+import warnings
 
 from setuptools import Extension
 from setuptools.dist import Distribution
 from pip.commands.wheel import WheelCommand
+from pip.status_codes import SUCCESS
 from semantic_version import Spec, Version
 
-from .._compat import Path, PY2, encode, decode
+from .._compat import Path, PY2, encode
+from ..utils.helpers import template
 
 
 SETUP_TEMPLATE = """# -*- coding: utf-8 -*-
@@ -54,6 +57,8 @@ EXTENSION_TEMPLATE = """Extension(
 class Builder(object):
     """
     Tool to transform a poet file to a setup() instruction.
+    
+    It also creates the MANIFEST.in file if necessary.
     """
 
     AUTHOR_REGEX = re.compile('(?u)^(?P<name>[- .,\w\d\'’"()]+) <(?P<email>.+?)>$')
@@ -106,12 +111,23 @@ class Builder(object):
         # Building wheel if necessary
         if not options.get('no_wheels'):
             command = WheelCommand()
-            command_args = ['--no-index', '--no-deps', '--wheel-dir', 'dist', 'dist/{}'.format(poet.archive)]
+            command_args = [
+                '--no-index',
+                '--no-deps',
+                '-q',
+                '--wheel-dir', 'dist',
+                'dist/{}'.format(poet.archive)
+            ]
 
             if options.get('universal', True):
                 command_args.append('--build-option=--universal')
 
-            command.main(command_args)
+            with warnings.catch_warnings():
+                warnings.filterwarnings('ignore', category=UserWarning)
+                status = command.main(command_args)
+
+            if status != SUCCESS:
+                raise Exception('An error occurred while executing command.')
 
     def _setup(self, poet, **options):
         """
@@ -124,7 +140,7 @@ class Builder(object):
         """
         setup_kwargs = {
             'name': poet.name,
-            'version': poet.version,
+            'version': poet.normalized_version,
             'description': poet.description,
             'long_description': poet.readme,
             'include_package_data': True,
@@ -225,8 +241,16 @@ class Builder(object):
             'console_scripts': []
         }
 
+        # Generic entry points
+        for category, entry_points in poet.entry_points.items():
+            entry_points[category] = []
+
+            for name, script in entry_points.items():
+                entry_points[category].append('{} = {}'.format(name, script))
+
+        # Console scripts entry points
         for name, script in poet.scripts.items():
-            entry_points['console_scripts'].append('{}={}'.format(name, script))
+            entry_points['console_scripts'].append('{} = {}'.format(name, script))
 
         return entry_points
 
@@ -434,16 +458,12 @@ class Builder(object):
         for key in parameters.keys():
             value = parameters[key]
 
-            if value is not None:
+            if value is not None and not isinstance(value, (list, dict)):
                 parameters[key] = repr(value)
 
+        setup_template = template('setup.py.jinja2')
         with open(dest, 'w') as f:
-            f.write(SETUP_TEMPLATE.format(**parameters))
-
-            if extensions:
-                f.write(EXTENSIONS_TEMPLATE.format(extensions='\n    '.join(extensions)))
-
-            f.write('\nsetup(**kwargs)')
+            f.write(setup_template.render(**parameters))
 
     def _write_manifest(self, manifest):
         with open(manifest, 'w') as f:
