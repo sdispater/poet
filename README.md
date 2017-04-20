@@ -7,7 +7,7 @@ Poet helps you declare, manage and install dependencies of Python projects, ensu
 The package is **highly experimental** at the moment so expect things to change and break. However, if you feel adventurous
 I'd gladly appreciate feedback and pull requests.
 
-![Poet Install](https://raw.githubusercontent.com/sdispater/poet/master/assets/poet-install.gif)
+![Poet Install](https://raw.githubusercontent.com/sdispater/poet/develop/assets/poet-install.gif)
 
 ## Installation
 
@@ -184,7 +184,8 @@ poet install -f mysql -f pgsql
 #### Options
 
 * `--no-dev`: Do not install dev dependencies.
-* `-f|--features  Features to install (multiple values allowed)
+* `-f|--features`: Features to install (multiple values allowed).
+* `--no-progress`: Removes the progress display that can mess with some terminals or scripts which don't handle backspace characters.
 * `--index`: The index to use when installing packages.
 
 
@@ -207,6 +208,7 @@ poet update requests toml
 
 #### Options
 
+* `--no-progress`: Removes the progress display that can mess with some terminals or scripts which don't handle backspace characters.
 * `--index`: The index to use when installing packages.
 
 
@@ -253,6 +255,7 @@ poet lock
 
 #### Options
 
+* `--no-progress`: Removes the progress display that can mess with some terminals or scripts which don't handle backspace characters.
 * `-i|--index`: The index to use.
 * `-f|--force`: Force locking.
 
