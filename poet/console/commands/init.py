@@ -138,9 +138,8 @@ in the current directory.
 
         requirements = []
 
-        question = '<question>Would you like to define your dependencies' \
-                   ' (require) interactively [<comment>yes</comment>]?</>\n' \
-                   '> '
+        question = 'Would you like to define your dependencies' \
+                   ' (require) interactively?'
         if self.confirm(question, True):
             requirements = self._format_requirements(
                 self._determine_requirements(self.option('dependency'))
@@ -149,8 +148,7 @@ in the current directory.
         dev_requirements = []
 
         question = '<question>Would you like to define your dev dependencies' \
-                   ' (require-dev) interactively [<comment>yes</comment>]?</>\n' \
-                   '> '
+                   ' (require-dev) interactively'
         if self.confirm(question, True):
             dev_requirements = self._format_requirements(
                 self._determine_requirements(self.option('dev-dependency'))
@@ -182,7 +180,7 @@ in the current directory.
                 self.line(['', output, ''])
 
             if not self.confirm(
-                'Do you confirm generation [<comment>yes</comment>]? ', True
+                'Do you confirm generation?', True
             ):
                 self.line('<error>Command aborted</error>')
 
@@ -210,7 +208,7 @@ in the current directory.
                 result.append(requirement['name'] + ' ' + requirement['version'])
 
         version_parser = VersionParser()
-        question = self.create_question('Search for a package: ')
+        question = self.create_question('Search for a package:')
         package = self.ask(question)
         while package is not None:
             matches = self._find_packages(package)
@@ -240,7 +238,7 @@ in the current directory.
                     )
 
                     package = self.choice(
-                        '\nEnter package # to add, or the complete package name if it is not listed: ',
+                        '\nEnter package # to add, or the complete package name if it is not listed',
                         choices,
                         attempts=3
                     )
@@ -249,7 +247,7 @@ in the current directory.
             if package is not False and ' ' not in package:
                 question = self.create_question(
                     'Enter the version constraint to require '
-                    '(or leave blank to use the latest version): '
+                    '(or leave blank to use the latest version):'
                 )
                 question.attempts = 3
                 question.validator = lambda x: (x or '').strip() or False
@@ -269,7 +267,7 @@ in the current directory.
             if package is not False:
                 requires.append(package)
 
-            package = self.ask('\nSearch for a package: ')
+            package = self.ask('\nSearch for a package:')
 
         return requires
 
