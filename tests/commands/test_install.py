@@ -22,13 +22,6 @@ class Poet(BasePoet):
 
 
 class InstallCommand(BaseCommand):
-    """
-    Install and lock dependencies specified in the <comment>poetry.toml</comment> file.
-
-    install
-        { --f|features=* : Features to install }
-        {--no-dev : Do not install dev dependencies}
-    """
 
     @property
     def poet_file(self):
@@ -55,7 +48,7 @@ def test_install_default(mocker, check_output):
 
     command = app.find('install')
     command_tester = CommandTester(command)
-    command_tester.execute([('command', command.name)])
+    command_tester.execute([('command', command.name), ('--no-progress', True)])
 
     assert os.path.exists(DUMMY_LOCK)
     os.remove(DUMMY_LOCK)
@@ -66,12 +59,12 @@ def test_install_default(mocker, check_output):
     expected = """
 Locking dependencies to poetry.lock
 
-  - Resolving dependencies
-  - Writing dependencies
+ - Resolving dependencies
+ - Writing dependencies
 
 Installing dependencies
 
-  - Installing pendulum (1.2.0)
+ - Installing pendulum (1.2.0)
 """
 
     assert output == expected

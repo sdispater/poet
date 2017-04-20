@@ -11,12 +11,16 @@ class LockCommand(Command):
 
     lock
         {--f|force : Force locking}
+        { --no-progress : Do not output download progress. }
     """
 
     def handle(self):
         if self.has_lock() and not self.option('force'):
             return
 
-        installer = Installer(self, self._repository)
+        installer = Installer(
+            self, self._repository,
+            with_progress=not self.option('no-progress')
+        )
 
         installer.lock(self.poet)

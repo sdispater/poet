@@ -6,7 +6,6 @@ import os
 import shutil
 import subprocess
 
-from hashlib import sha256
 from packaging.utils import canonicalize_name
 from pip.download import unpack_url
 from pip.index import Link
@@ -25,10 +24,11 @@ class Installer(object):
 
     UNSAFE = ['setuptools']
 
-    def __init__(self, command, repository):
+    def __init__(self, command, repository, with_progress=False):
         self._command = command
         self._poet = command.poet
         self._repository = repository
+        self._with_progress = with_progress
 
     def install(self, features=None, dev=True):
         """
@@ -82,31 +82,34 @@ class Installer(object):
                     # we do not install
                     if self._command.output.is_verbose():
                         self._command.line(
-                            '  - Skipping <info>{}</> '
+                            ' - Skipping <info>{}</> '
                             '(Specifies Python <comment>{}</> and current Python is <comment>{}</>)'
                             .format(name, ','.join([str(p) for p in dep.python]), python_version)
                         )
                     continue
 
+
+            cmd = [self._command.pip(), 'install', dep.normalized_name]
+
             if dep.is_vcs_dependency():
                 constraint = dep.pretty_constraint
+
+                # VCS must be updated to be installed
+                cmd.append('-U')
             else:
                 constraint = dep.constraint.replace('==', '')
 
-            self._command.line(
-                '  - Installing <info>{}</> (<comment>{}</>)'
+            message = (
+                ' - Installing <info>{}</> (<comment>{}</>)'
                 .format(name, constraint)
             )
+            end_message  = (
+                'Installed <info>{}</> (<comment>{}</>)'
+                .format(name, constraint)
+            )
+            error_message = 'Error while installing [{}]'.format(name)
 
-            try:
-                call([self._command.pip(), 'install', dep.normalized_name])
-            except subprocess.CalledProcessError as e:
-                self._command.error(
-                    'Error while installing [{}] ({})'
-                    .format(name, str(e))
-                )
-
-                break
+            self._progress(cmd, message[3:], end_message, message, error_message)
 
     def update(self, packages=None, features=None, dev=True):
         if self._poet.is_lock():
@@ -145,9 +148,9 @@ class Installer(object):
         ]
 
         if packages:
-            packages = [p for p in self._resolve(deps) if p['name'] in packages]
+            packages = [p for p in self.resolve(deps) if p['name'] in packages]
         else:
-            packages = self._resolve(deps)
+            packages = self.resolve(deps)
 
         deps = [PipDependency(p['name'], p['version']) for p in packages]
 
@@ -155,9 +158,30 @@ class Installer(object):
         actions = self._resolve_update_actions(deps, current_deps, delete=delete)
 
         if not actions:
-            self._command.line('  - <info>Dependencies already up-to-date!</info>')
+            self._command.line(' - <info>Dependencies already up-to-date!</info>')
 
             return
+
+        installs = len([a for a in actions if a[0] == 'install'])
+        updates = len([a for a in actions if a[0] == 'update'])
+        uninstalls = len([a for a in actions if a[0] == 'remove'])
+
+        summary = []
+        if updates:
+            summary.append('<comment>{}</> updates'.format(updates))
+
+        if installs:
+            summary.append('<comment>{}</> installations'.format(installs))
+
+        if uninstalls:
+            summary.append('<comment>{}</> uninstallations'.format(uninstalls))
+
+        if len(summary) > 1:
+            summary = ', '.join(summary)
+        else:
+            summary = summary[0]
+
+        self._command.line(' - Summary: {}'.format(summary))
 
         error = False
         for action, from_, dep in actions:
@@ -190,15 +214,12 @@ class Installer(object):
 
                 version = '<comment>{}</> -> '.format(constraint) + version
 
-            self._command.line('  - {} <info>{}</> ({})'.format(description, name, version))
+            message = ' - {} <info>{}</> ({})'.format(description, name, version)
+            start_message = message[3:]
+            end_message = ' {} <info>{}</> ({})'.format(description.replace('ing', 'ed'), name, version)
+            error_message = 'Error while {} [{}]'.format(description.lower(), name)
 
-            try:
-                call(cmd)
-            except subprocess.CalledProcessError as e:
-                error = True
-                self._command.error('Error while updating [{}] ({})'.format(name, str(e)))
-
-                break
+            self._progress(cmd, start_message, end_message, message, error_message)
 
         if not error:
             # If everything went well, we write down the lock file
@@ -222,13 +243,25 @@ class Installer(object):
         if dev:
             deps += self._poet.pip_dev_dependencies
 
-        packages = self._resolve(deps)
+        packages = self.resolve(deps)
         features = {}
         for name, featured_packages in self._poet.features.items():
             name = canonicalize_name(name)
             features[name] = [canonicalize_name(p) for p in featured_packages]
 
         self._write_lock(packages, features)
+
+    def resolve(self, deps):
+        if not self._with_progress:
+            self._command.line(' - <info>Resolving dependencies</>')
+
+            return self._resolve(deps)
+
+        with self._spin(
+            '<info>Resolving dependencies</>',
+            '<info>Resolving dependencies</>'
+        ):
+            return self._resolve(deps)
 
     def _resolve(self, deps):
         # Checking if we should active prereleases
@@ -243,7 +276,6 @@ class Installer(object):
         command = get_pip_command()
         opts, _ = command.parse_args([])
 
-        self._command.line('  - <info>Resolving dependencies</>')
         resolver = Resolver(
             constraints, PyPIRepository(opts, command._build_session(opts)),
             cache=DependencyCache(CACHE_DIR),
@@ -455,7 +487,7 @@ class Installer(object):
         return version
 
     def _write_lock(self, packages, features):
-        self._command.line('  - <info>Writing dependencies</>')
+        self._command.line(' - <info>Writing dependencies</>')
 
         content = self._generate_lock_content(packages, features)
 
@@ -502,16 +534,20 @@ class Installer(object):
 
         return pythons
 
-    @classmethod
-    def _hash(cls, filename):
-        _hash = sha256()
+    def _call(self, cmd, error_message):
+        try:
+            return call(cmd)
+        except subprocess.CalledProcessError as e:
+            raise Exception(error_message + ' ({})'.format(str(e)))
 
-        with open(filename, 'rb') as f:
-            while True:
-                chunk = f.read(8192)
-                if not chunk:
-                    break
+    def _progress(self, cmd, start_message, end_message, default_message, error_message):
+        if not self._with_progress:
+            self._command.line(default_message)
 
-                _hash.update(chunk)
+            return self._call(cmd, error_message)
 
-        return _hash.hexdigest()
+        with self._spin(start_message, end_message):
+            return self._call(cmd, error_message)
+
+    def _spin(self, start_message, end_message):
+        return self._command.spin(start_message, end_message)

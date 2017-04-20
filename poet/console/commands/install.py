@@ -10,8 +10,9 @@ class InstallCommand(Command):
     Install and lock dependencies specified in the <comment>poetry.toml</comment> file.
 
     install
-        { --f|features=* : Features to install }
-        { --no-dev : Do not install dev dependencies }
+        { --f|features=* : Features to install. }
+        { --no-dev : Do not install dev dependencies. }
+        { --no-progress : Do not output download progress. }
     """
 
     def handle(self):
@@ -24,6 +25,9 @@ class InstallCommand(Command):
 
         dev = not self.option('no-dev')
 
-        installer = Installer(self, self._repository)
+        installer = Installer(
+            self, self._repository,
+            with_progress=not self.option('no-progress')
+        )
 
         installer.install(features=features, dev=dev)
