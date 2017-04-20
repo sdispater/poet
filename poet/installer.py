@@ -216,7 +216,7 @@ class Installer(object):
 
             message = ' - {} <info>{}</> ({})'.format(description, name, version)
             start_message = message[3:]
-            end_message = ' {} <info>{}</> ({})'.format(description.replace('ing', 'ed'), name, version)
+            end_message = '{} <info>{}</> ({})'.format(description.replace('ing', 'ed'), name, version)
             error_message = 'Error while {} [{}]'.format(description.lower(), name)
 
             self._progress(cmd, start_message, end_message, message, error_message)
