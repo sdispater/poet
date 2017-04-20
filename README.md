@@ -15,6 +15,36 @@ I'd gladly appreciate feedback and pull requests.
 pip install pypoet
 ```
 
+### Enable tab completion for Bash, Fish, or Zsh
+
+`poet` supports generating completion scripts for Bash, Fish, and Zsh.
+See `poet help completions` for full details, but the gist is as simple as using one of the following:
+
+```bash
+# Bash
+$ poet completions bash > /etc/bash_completion.d/poet.bash-completion
+
+# Bash (macOS/Homebrew)
+$ poet completions bash > $(brew --prefix)/etc/bash_completion.d/poet.bash-completion
+
+# Fish
+$ poet completions fish > ~/.config/fish/completions/poet.fish
+
+# Zsh
+$ poet completions zsh > ~/.zfunc/_poet
+```
+
+*Note:* you may need to restart your shell in order for the changes to take 
+effect.
+
+For `zsh`, you must then add the following line in your `~/.zshrc` before
+`compinit`:
+
+```zsh
+fpath+=~/.zfunc
+```
+
+
 ## Introduction
 
 `poet` is a tool to handle dependencies installation, building and packaging of Python packages.
