@@ -205,6 +205,9 @@ class Poet(object):
     def archive(self):
         return '{}-{}.tar.gz'.format(self.name, self.normalized_version)
 
+    def is_prerelease(self):
+        return Ver
+
     def load(self):
         """
         Load data from the config.

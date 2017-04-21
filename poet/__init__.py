@@ -2,9 +2,6 @@
 
 from .console import Application
 
+__version__ = '0.4.0-beta.0'
 
-app = Application()
-
-
-if __name__ == '__main__':
-    app.run()
+app = Application('Poet', __version__)
