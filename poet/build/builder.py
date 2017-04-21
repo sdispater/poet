@@ -4,7 +4,6 @@ import os
 import re
 import warnings
 
-from setuptools import Extension
 from setuptools.dist import Distribution
 from pip.commands.wheel import WheelCommand
 from pip.status_codes import SUCCESS
@@ -12,46 +11,6 @@ from semantic_version import Spec, Version
 
 from .._compat import Path, PY2, encode
 from ..utils.helpers import template
-
-
-SETUP_TEMPLATE = """# -*- coding: utf-8 -*-
-
-from setuptools import setup
-
-kwargs = dict(
-    name={name},
-    version={version},
-    description={description},
-    long_description={long_description},
-    author={author},
-    author_email={author_email},
-    url={url},
-    license={license},
-    keywords={keywords},
-    classifiers={classifiers},
-    entry_points={entry_points},
-    install_requires={install_requires},
-    tests_require={tests_require},
-    extras_require={extras_require},
-    packages={packages},
-    py_modules={py_modules},
-    script_name='setup.py',
-    include_package_data=True
-)
-"""
-
-EXTENSIONS_TEMPLATE = """
-from setuptools import Extension
-
-kwargs['ext_modules'] = [
-    {extensions}
-]
-"""
-
-EXTENSION_TEMPLATE = """Extension(
-        '{module}',
-        {source}
-    )"""
 
 
 class Builder(object):
@@ -73,7 +32,7 @@ class Builder(object):
 
     def build(self, poet, **options):
         """
-        Builds a poet.
+        Builds a package from a Poet instance
 
         :param poet: The poet to build.
         :type poet: poet.poet.Poet
@@ -171,6 +130,17 @@ class Builder(object):
         return setup_kwargs
 
     def _author(self, poet):
+        """
+        Build the author information from a Poet instance.
+        
+        Transforms a author in the form "name <email>" into
+        a proper dictionary.
+        
+        :param poet: The Poet instance for which to build.
+        :type poet: poet.poet.Poet
+        
+        :rtype: dict
+        """
         m = self.AUTHOR_REGEX.match(poet.authors[0])
 
         name = m.group('name')
@@ -425,13 +395,29 @@ class Builder(object):
         }
 
     def _ext_modules(self, poet):
+        """
+        Builds the extension modules.
+        
+        Transforms the extensions section:
+        
+        [extensions]
+        "my.module" = "my/module.c"
+        
+        to a proper extensions dictionary:
+        
+        
+        
+        :param poet: The Poet instance for which to build.
+        :type poet: poet.poet.Poet
+        
+        :rtype: dict 
+        """
         extensions = []
         for module, source in poet.extensions.items():
             if not isinstance(source, list):
                 source = [source]
 
-            ext = Extension(module, source)
-            extensions.append(ext)
+            extensions.append((module, source))
 
         return {
             'ext_modules': extensions
@@ -439,21 +425,6 @@ class Builder(object):
 
     def _write_setup(self, setup, dest):
         parameters = setup.copy()
-
-        extensions = []
-        if parameters['ext_modules']:
-            for extension in parameters['ext_modules']:
-                module = extension.name
-                source = extension.sources
-
-                extensions.append(
-                    EXTENSION_TEMPLATE.format(
-                        module=module,
-                        source=repr(source)
-                    )
-                )
-
-            del parameters['ext_modules']
 
         for key in parameters.keys():
             value = parameters[key]

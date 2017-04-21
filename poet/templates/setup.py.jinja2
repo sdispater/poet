@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
 from setuptools import setup
+{% if ext_modules %}
+from setuptools import Extension
+{% endif %}
 
 
 kwargs = {
@@ -74,6 +77,22 @@ kwargs = {
     'packages': [
         {% for module in py_modules %}
         '{{ module }}'{% if not loop.last %},{% endif %}
+
+        {% endfor %}
+    ],
+    {% endif %}
+    {% if ext_modules %}
+    'ext_modules': [
+        {% for module, source in ext_modules %}
+        Extension(
+            '{{ module }}',
+            [
+                {% for src in source %}
+                '{{ src }}'{% if not loop.last %},{% endif %}
+
+                {% endfor %}
+            ]
+        ){% if not loop.last %},{% endif %}
 
         {% endfor %}
     ],
