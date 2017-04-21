@@ -31,8 +31,8 @@ semantic_version = "^2.6"
 pygments = "^2.2"
 twine = "^1.8"
 wheel = "^0.29"
-pip-tools = "^1.9.0"
-cleo = { git = "https://github.com/sdispater/cleo.git", branch = "develop" }
+pip-tools = "^1.9"
+cleo = "^0.6"
 jinja2 = "^2.9.6"
 packaging = "^16.8"
 pathlib2 = { version = "^2.2", python = "~2.7" }
