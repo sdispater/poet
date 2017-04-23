@@ -68,6 +68,13 @@ keywords = ['packaging', 'poet']
 #
 # Python packages, modules and package data will be automatically detected
 # include = ['poet/**/*', 'LICENSE']
+#
+# If you packages lies elsewhere (like in a src directory),
+# you can tell poet to find them from there:
+# include = { from = 'src', include = '**/*' }
+#
+# Similarly, you can tell that the src directory represent the foo package:
+# include = { from = 'src', include = '**/*', as = 'foo' }
 
 
 # Features are sets of optional dependencies, which enhance a package,
