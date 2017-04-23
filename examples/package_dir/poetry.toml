@@ -16,7 +16,7 @@ homepage = "https://github.com/sdispater/poet"
 keywords = ['packaging', 'poet']
 
 include = [
-    {from = 'src', include = './**/*'}
+    {from = 'src', include = '**/*'}
 ]
 
 python = ["^3.5"]
