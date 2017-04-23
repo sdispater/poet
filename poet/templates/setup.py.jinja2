@@ -74,12 +74,20 @@ kwargs = {
     ],
     {% endif %}
     {% if py_modules %}
-    'packages': [
+    'py_modules': [
         {% for module in py_modules %}
         '{{ module }}'{% if not loop.last %},{% endif %}
 
         {% endfor %}
     ],
+    {% endif %}
+    {% if package_dir %}
+    'package_dir': {
+        {% for package_name, directory in package_dir.items() %}
+        '{{ package_name }}': '{{ directory }}'{% if not loop.last %},{% endif %}
+
+        {% endfor %}
+    },
     {% endif %}
     {% if ext_modules %}
     'ext_modules': [

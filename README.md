@@ -375,6 +375,18 @@ include = ["package/**/*.py", "package/**/.c"]
 exclude = ["package/excluded.py"]
 ```
 
+If you packages lies elsewhere (say in a `src` directory), you can tell `poet` to find them from there:
+
+```toml
+include = { from = 'src', include = '**/*' }
+```
+
+Similarly, you can tell that the `src` directory represent the `foo` package:
+
+```toml
+include = { from = 'src', include = '**/*', as = 'foo' }
+```
+
 ### `dependencies` and `dev-dependencies`
 
 Poet is configured to look for dependencies on [PyPi](https://pypi.python.org/pypi) by default.

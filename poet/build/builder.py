@@ -304,9 +304,10 @@ class Builder(object):
         includes = poet.include
         packages = []
         modules = []
+        package_dirs = {}
         crawled = []
         excluded = []
-        base_path = Path(poet.base_dir)
+        root = Path(poet.base_dir)
 
         for exclude in poet.exclude + poet.ignore:
             if not exclude:
@@ -315,31 +316,98 @@ class Builder(object):
             if exclude.startswith('/'):
                 exclude = exclude[1:]
 
-            for exc in base_path.glob(exclude):
+            for exc in root.glob(exclude):
                 if exc.suffix == '.py':
-                    exc = exc.relative_to(base_path)
+                    exc = exc.relative_to(root)
                     excluded.append('.'.join(exc.with_suffix('').parts))
+
+        if not isinstance(includes, list):
+            includes = [includes]
+
+        for include in includes:
+            if isinstance(include, dict):
+                settings = self._find_packages_from(
+                    root,
+                    include['from'],
+                    include['include'],
+                    include.get('as', ''),
+                    excluded=excluded,
+                    crawled=crawled
+                )
+            else:
+                settings = self._find_packages_from(
+                    root,
+                    '',
+                    include,
+                    excluded=excluded,
+                    crawled=crawled
+                )
+
+            packages += settings['packages']
+            modules += settings['modules']
+            package_dirs.update(settings.get('package_dirs', {}))
+
+        packages = [p for p in packages if p not in excluded]
+        modules = [m for m in modules if m not in excluded]
+
+        settings = {
+            'packages': packages,
+            'py_modules': modules
+        }
+
+        package_dir = {}
+        for package_name, directory in package_dirs.items():
+            package_dir[package_name] = directory.as_posix()
+
+        if package_dir:
+            settings['package_dir'] = package_dir
+
+        return settings
+
+    def _find_packages_from(self, root, base_dir, includes,
+                            package_name=None, excluded=None, crawled=None):
+        package_dirs = {}
+        packages = []
+        modules = []
+
+        if package_name is not None:
+            package_dirs[package_name] = Path(base_dir)
+
+        if excluded is None:
+            excluded = []
+
+        if crawled is None:
+            crawled = []
+
+        if not isinstance(includes, list):
+            includes = [includes]
+
+        if not isinstance(base_dir, Path):
+            base_dir = Path(base_dir)
+
+        base_path = root / base_dir
 
         for include in includes:
             dirs = []
             others = []
+
             for element in base_path.glob(include):
                 if element.is_dir():
                     dirs.append(element.relative_to(base_path))
                 else:
                     others.append(element.relative_to(base_path))
 
-            m = re.match('^(.+)/\*\*/\*(\..+)?$', include)
+            m = re.match('^([^./]+)/\*\*/\*(\..+)?$', include)
             if m:
                 # {dir}/**/* will not take the root directory
                 # So we add it
                 dirs.insert(0, Path(m.group(1)))
 
             for dir in dirs:
-                package = '.'.join(dir.parts)
-
                 if dir in crawled:
                     continue
+
+                package = '.'.join(dir.parts)
 
                 # We have a package
                 real_dir = base_path / dir
@@ -356,12 +424,12 @@ class Builder(object):
                     else:
                         modules += ['.'.join(c.parts) for c in filtered_children]
 
-                    crawled += children
+                    crawled += [base_path / child for child in children]
 
-                crawled.append(dir)
+                crawled.append(real_dir)
 
             for element in others:
-                if element in crawled or element.suffix == '.pyc':
+                if base_path / element in crawled or element.suffix == '.pyc':
                     continue
 
                 if element.suffix == '.py' and element.name != '__init__.py':
@@ -382,17 +450,22 @@ class Builder(object):
                         # We actually have a package
                         packages.append('.'.join(dir.parts))
 
-                        crawled.append(dir)
+                        crawled.append(base_path / dir)
 
-                crawled.append(element)
+                crawled.append(base_path / element)
 
         packages = [p for p in packages if p not in excluded]
         modules = [m for m in modules if m not in excluded]
 
-        return {
+        settings = {
             'packages': packages,
-            'py_modules': modules
+            'modules': modules
         }
+
+        if package_dirs:
+            settings['package_dirs'] = package_dirs
+
+        return settings
 
     def _ext_modules(self, poet):
         """
