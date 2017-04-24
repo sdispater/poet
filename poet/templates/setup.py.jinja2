@@ -91,11 +91,11 @@ kwargs = {
     {% endif %}
     {% if ext_modules %}
     'ext_modules': [
-        {% for module, source in ext_modules %}
+        {% for extension in ext_modules %}
         Extension(
-            '{{ module }}',
+            '{{ extension.name }}',
             [
-                {% for src in source %}
+                {% for src in extension.sources %}
                 '{{ src }}'{% if not loop.last %},{% endif %}
 
                 {% endfor %}

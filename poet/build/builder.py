@@ -5,6 +5,7 @@ import re
 import warnings
 
 from setuptools.dist import Distribution
+from setuptools.extension import Extension
 from pip.commands.wheel import WheelCommand
 from pip.status_codes import SUCCESS
 from semantic_version import Spec, Version
@@ -476,9 +477,9 @@ class Builder(object):
         [extensions]
         "my.module" = "my/module.c"
         
-        to a proper extensions dictionary:
+        to a proper extension:
         
-        
+        Extension('my.module', 'my/module.c')
         
         :param poet: The Poet instance for which to build.
         :type poet: poet.poet.Poet
@@ -490,7 +491,7 @@ class Builder(object):
             if not isinstance(source, list):
                 source = [source]
 
-            extensions.append((module, source))
+            extensions.append(Extension(module, source))
 
         return {
             'ext_modules': extensions
