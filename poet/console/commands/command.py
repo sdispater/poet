@@ -6,10 +6,9 @@ import glob
 import distutils
 import re
 
-from cleo import Command as BaseCommand, InputOption
+from cleo import Command as BaseCommand
 from semantic_version import Version
 
-from ...repositories import PyPiRepository
 from ...poet import Poet
 from ...utils.helpers import call
 
@@ -20,7 +19,6 @@ class Command(BaseCommand):
         super(Command, self).__init__()
 
         self._poet = None
-        self._repository = PyPiRepository()
         self._virtual_env = None
 
         self._python_version = None
@@ -52,16 +50,6 @@ class Command(BaseCommand):
     def has_lock(self):
         return os.path.exists(self.lock_file)
 
-    def configure(self):
-        super(Command, self).configure()
-
-        # Adding --i|index option
-        self.add_option(
-            'index', 'i',
-            InputOption.VALUE_REQUIRED,
-            'The index to use'
-        )
-
     def execute(self, i, o):
         """
         Executes the command.
@@ -69,11 +57,6 @@ class Command(BaseCommand):
         # Adding warning style
         self.set_style('warning', 'black', 'yellow')
         self.set_style('question', 'blue')
-
-        index = self.option('index')
-
-        if index:
-            self._repository = PyPiRepository(index)
 
         self.init_virtualenv()
 

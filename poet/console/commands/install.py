@@ -2,10 +2,10 @@
 
 from ...installer import Installer
 
-from .command import Command
+from .index_command import IndexCommand
 
 
-class InstallCommand(Command):
+class InstallCommand(IndexCommand):
     """
     Install and lock dependencies specified in the <comment>poetry.toml</comment> file.
 

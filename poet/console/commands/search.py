@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
 from ...repositories import PyPiRepository
-from .command import Command
+from .index_command import IndexCommand
 
 
-class SearchCommand(Command):
+class SearchCommand(IndexCommand):
     """
     Search for packages.
 

@@ -2,10 +2,10 @@
 
 from ...installer import Installer
 
-from .command import Command
+from .index_command import IndexCommand
 
 
-class UpdateCommand(Command):
+class UpdateCommand(IndexCommand):
     """
     Update dependencies as according to the <comment>poetry.toml</> file.
 
