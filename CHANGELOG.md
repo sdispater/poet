@@ -2,10 +2,6 @@
 
 ## [Unreleased]
 
-# Fixed
-
-- Fixes `install` command not properly installing packages.
-
 ### Added
 
 - Added support for Python version restricted dependencies: `pathlib2 = { version = "^2.2", python = "~2.7" }`
@@ -17,6 +13,10 @@
 - Improved CLI to display visual clues when actions are being performed (spinner).
 - Improved `update` command by removing no longer necessary packages.
 - Improved template for the `init` command.
+
+# Fixed
+
+- Fixes `install` command not properly installing packages.
 
 
 ## [0.3.2] - 2017-04-13
