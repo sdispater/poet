@@ -46,4 +46,4 @@ class Lock(Poet):
                 self._dependencies.append(dep)
                 self._pip_dependencies.append(pip_dep)
 
-        self._features = self._config.get('features', {})
+        self._features = self._get_features()

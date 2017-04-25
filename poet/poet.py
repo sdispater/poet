@@ -11,6 +11,7 @@ except ImportError:
     pypandoc = None
 
 from packaging.version import Version as PackageVersion
+from packaging.utils import canonicalize_name
 
 from .exceptions.poet import MissingElement, InvalidElement
 from .version_parser import VersionParser
@@ -205,9 +206,6 @@ class Poet(object):
     def archive(self):
         return '{}-{}.tar.gz'.format(self.name, self.normalized_version)
 
-    def is_prerelease(self):
-        return Ver
-
     def load(self):
         """
         Load data from the config.
@@ -225,7 +223,7 @@ class Poet(object):
         self._dev_dependencies = self._get_dependencies(self._config.get('dev-dependencies', {}), category='dev')
         self._pip_dependencies = self._get_dependencies(self._config.get('dependencies', {}), 'pip')
         self._pip_dev_dependencies = self._get_dependencies(self._config.get('dev-dependencies', {}), 'pip', category='dev')
-        self._features = self._config.get('features', {})
+        self._features = self._get_features()
         self._scripts = self._config.get('scripts', {})
         self._entry_points = self._config.get('entry-points', {})
 
@@ -363,3 +361,6 @@ class Poet(object):
             klass = PipDependency
 
         return [klass(k, dependencies[k], category=category) for k in keys]
+
+    def _get_features(self):
+        return self._config.get('features', {})

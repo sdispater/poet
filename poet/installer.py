@@ -46,15 +46,31 @@ class Installer(object):
         :rtype: None 
         """
         if not os.path.exists(self._poet.lock_file):
+            if features:
+                for feature in features:
+                    if feature not in self._poet.features:
+                        raise ValueError(
+                            'Feature [{}] does not exist'
+                            .format(feature)
+                        )
+
             self.lock(dev=dev)
 
             return self.install(features=features, dev=dev)
+
+        lock = self._poet.lock
+        if features:
+            for feature in features:
+                if feature not in lock.features:
+                    raise ValueError(
+                        'Feature [{}] does not exist'
+                        .format(feature)
+                    )
 
         self._command.line('')
         self._command.line('<info>Installing dependencies</>')
         self._command.line('')
 
-        lock = self._poet.lock
         deps = lock.pip_dependencies
 
         if dev:

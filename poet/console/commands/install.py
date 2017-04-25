@@ -19,9 +19,9 @@ class InstallCommand(IndexCommand):
         features = []
         for feature in self.option('features'):
             if ' ' in feature:
-                features += [f.replace('_', '-').lower() for f in feature.split(' ')]
+                features += feature.split(' ')
             else:
-                features.append(feature.replace('_', '-').lower())
+                features.append(feature)
 
         dev = not self.option('no-dev')
 

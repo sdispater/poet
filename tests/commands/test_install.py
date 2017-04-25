@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import os
-
 import tempfile
+import pytest
+
 from cleo import CommandTester
 from poet.console import Application
 from poet.console.commands import InstallCommand as BaseCommand
@@ -19,6 +20,12 @@ class Poet(BasePoet):
     @property
     def lock_file(self):
         return DUMMY_LOCK
+
+    @property
+    def features(self):
+        return {
+            'my-feature': ['requests']
+        }
 
 
 class InstallCommand(BaseCommand):
@@ -68,3 +75,18 @@ Installing dependencies
 """
 
     assert output == expected
+
+
+def test_install_invalid_feature(app):
+    app = Application()
+    app.add(InstallCommand())
+
+    command = app.find('install')
+    command_tester = CommandTester(command)
+
+    with pytest.raises(ValueError):
+        command_tester.execute([
+            ('command', command.name),
+            ('--features', ['invalid']),
+            ('--no-progress', True)
+        ])
