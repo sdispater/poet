@@ -32,7 +32,7 @@ install:
   - pip install -r requirements.txt # Install new requirements
   - pip uninstall pypoet -y
   - python -m poet.console.application --version
-  - python -m poet.console.application install -v
+  - python -m poet.console.application install -v --no-progress
 
 script: py.test --cov=poet --cov-config=.coveragerc tests/
 
