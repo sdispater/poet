@@ -17,17 +17,25 @@ class Lock(Poet):
         packages = self._config['package']
 
         for package in packages:
+            constraint = {
+                'optional': package.get('optional', False),
+                'python': package.get('python', ['*'])
+            }
+            version = package['version']
+            if isinstance(version, dict):
+                constraint.update(version)
+            else:
+                constraint['version'] = version
+
             dep = Dependency(
                 package['name'],
-                package['version'],
-                category=package['category'],
-                optional=package.get('optional')
+                constraint,
+                category=package['category']
             )
             pip_dep = PipDependency(
                 package['name'],
-                package['version'],
+                constraint,
                 category=package['category'],
-                optional=package.get('optional'),
                 checksum=package.get('checksum')
             )
 

@@ -3,7 +3,6 @@
 import re
 import os
 import toml
-import subprocess
 import warnings
 
 try:
@@ -11,10 +10,13 @@ try:
 except ImportError:
     pypandoc = None
 
+from packaging.version import Version as PackageVersion
+
 from .exceptions.poet import MissingElement, InvalidElement
 from .version_parser import VersionParser
 from .build import Builder
 from .package import Dependency, PipDependency
+from .utils.helpers import call
 
 
 class Poet(object):
@@ -42,6 +44,7 @@ class Poet(object):
         self._pip_dev_dependencies = []
         self._features = {}
         self._scripts = {}
+        self._entry_points = {}
         self._license = None
         self._readme = None
         self._include = []
@@ -62,9 +65,7 @@ class Poet(object):
         if self._git_config is not None:
             return self._git_config
 
-        config_list = subprocess.check_output(
-            ['git', 'config', '-l']
-        ).decode()
+        config_list = call(['git', 'config', '-l'])
 
         self._git_config = {}
 
@@ -104,6 +105,15 @@ class Poet(object):
     @property
     def version(self):
         return self._version
+
+    @property
+    def normalized_version(self):
+        """
+        Return a PEP 440 compatible version.
+        
+        :rtype: str
+        """
+        return str(PackageVersion(self._version))
 
     @property
     def description(self):
@@ -154,6 +164,10 @@ class Poet(object):
         return self._scripts
 
     @property
+    def entry_points(self):
+        return self._entry_points
+
+    @property
     def license(self):
         return self._license
 
@@ -189,7 +203,10 @@ class Poet(object):
 
     @property
     def archive(self):
-        return '{}-{}.tar.gz'.format(self.name, self.version)
+        return '{}-{}.tar.gz'.format(self.name, self.normalized_version)
+
+    def is_prerelease(self):
+        return Ver
 
     def load(self):
         """
@@ -210,6 +227,7 @@ class Poet(object):
         self._pip_dev_dependencies = self._get_dependencies(self._config.get('dev-dependencies', {}), 'pip', category='dev')
         self._features = self._config.get('features', {})
         self._scripts = self._config.get('scripts', {})
+        self._entry_points = self._config.get('entry-points', {})
 
         self._load_readme()
 

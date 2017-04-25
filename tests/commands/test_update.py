@@ -15,13 +15,6 @@ class Poet(BasePoet):
 
 
 class UpdateCommand(BaseCommand):
-    """
-    Update dependencies as according to the <comment>poetry.toml</> file.
-
-    update
-        { packages?* : The packages to update.}
-        { --f|features=* : Features to install }
-    """
 
     @property
     def poet_file(self):
@@ -63,7 +56,7 @@ def test_update_only_update(mocker):
 
     command = app.find('update')
     command_tester = CommandTester(command)
-    command_tester.execute([('command', command.name)])
+    command_tester.execute([('command', command.name), ('--no-progress', True)])
 
     assert sub.call_count == 2
     write_lock.assert_called_once()
@@ -72,9 +65,10 @@ def test_update_only_update(mocker):
     expected = """
 Updating dependencies
 
-  - Resolving dependencies
-  - Updating pendulum (1.2.0 -> 1.3.0)
-  - Updating pytest (3.0.7 -> 3.5.0)
+ - Resolving dependencies
+ - Summary: 2 updates
+ - Updating pendulum (1.2.0 -> 1.3.0)
+ - Updating pytest (3.0.7 -> 3.5.0)
 """
 
     assert output == expected
@@ -108,7 +102,7 @@ def test_update_specific_packages(mocker):
 
     command = app.find('update')
     command_tester = CommandTester(command)
-    command_tester.execute([('command', command.name), ('packages', ['pendulum'])])
+    command_tester.execute([('command', command.name), ('packages', ['pendulum']), ('--no-progress', True)])
 
     assert sub.call_count == 1
     write_lock.assert_called_once()
@@ -117,8 +111,9 @@ def test_update_specific_packages(mocker):
     expected = """
 Updating dependencies
 
-  - Resolving dependencies
-  - Updating pendulum (1.2.0 -> 1.3.0)
+ - Resolving dependencies
+ - Summary: 1 updates
+ - Updating pendulum (1.2.0 -> 1.3.0)
 """
 
     assert output == expected
@@ -158,7 +153,7 @@ def test_update_with_new_packages(mocker):
 
     command = app.find('update')
     command_tester = CommandTester(command)
-    command_tester.execute([('command', command.name)])
+    command_tester.execute([('command', command.name), ('--no-progress', True)])
 
     assert sub.call_count == 3
     write_lock.assert_called_once()
@@ -167,10 +162,11 @@ def test_update_with_new_packages(mocker):
     expected = """
 Updating dependencies
 
-  - Resolving dependencies
-  - Updating pendulum (1.2.0 -> 1.3.0)
-  - Updating pytest (3.0.7 -> 3.5.0)
-  - Installing requests (2.13.0)
+ - Resolving dependencies
+ - Summary: 2 updates, 1 installations
+ - Updating pendulum (1.2.0 -> 1.3.0)
+ - Updating pytest (3.0.7 -> 3.5.0)
+ - Installing requests (2.13.0)
 """
 
     assert output == expected
@@ -204,7 +200,7 @@ def test_update_with_no_updates(mocker):
 
     command = app.find('update')
     command_tester = CommandTester(command)
-    command_tester.execute([('command', command.name)])
+    command_tester.execute([('command', command.name), ('--no-progress', True)])
 
     assert sub.call_count == 0
     assert write_lock.call_count == 0
@@ -213,8 +209,8 @@ def test_update_with_no_updates(mocker):
     expected = """
 Updating dependencies
 
-  - Resolving dependencies
-  - Dependencies already up-to-date!
+ - Resolving dependencies
+ - Dependencies already up-to-date!
 """
 
     assert output == expected

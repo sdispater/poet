@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 
 from pip.req import InstallRequirement
+from packaging.utils import canonicalize_name
 from .dependency import Dependency
 
 
 class PipDependency(Dependency):
 
-    def __init__(self, name, constraint, category='main', optional=False, checksum=None):
+    def __init__(self, name, constraint, category='main', checksum=None):
         # Normalizing name for easier dependencies resolving
-        name = name.replace('_', '-').lower()
+        name = canonicalize_name(name)
 
-        super(PipDependency, self).__init__(name, constraint, category=category, optional=optional)
+        super(PipDependency, self).__init__(name, constraint, category=category)
 
         self._checksum = checksum
 

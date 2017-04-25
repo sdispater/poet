@@ -56,3 +56,33 @@ This is a basic example of a Poet project.
 
     assert ['basic_example', 'basic_example.sub_package'] == setup_kwargs['packages']
     assert ['my_module'] == setup_kwargs['py_modules']
+
+
+def test_setup_package_dir(mocker):
+    base_dir = os.path.join(
+        os.path.dirname(__file__), '..', 'examples', 'package_dir'
+    )
+
+    getcwd = mocker.patch('os.getcwd')
+    getcwd.return_value = base_dir
+    path = os.path.join(
+        base_dir, 'poetry.toml'
+    )
+    poet = Poet(path)
+    builder = Builder()
+    setup_kwargs = builder._setup(poet)
+
+    assert 'package-dir-example' == setup_kwargs['name']
+    assert '0.1.0' == setup_kwargs['version']
+    assert 'Package dir example' == setup_kwargs['description']
+
+    long_description = """Package dir Example
+===================
+
+This is an example of a package dir Poet project.
+"""
+    assert long_description == setup_kwargs['long_description']
+    assert ['my_package'] == setup_kwargs['packages']
+    assert [] == setup_kwargs['py_modules']
+    assert {'': 'src'} == setup_kwargs['package_dir']
+

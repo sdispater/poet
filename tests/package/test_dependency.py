@@ -71,3 +71,73 @@ def test_accepts_prereleases():
     dep = Dependency('foo', '^1.2.3-rc.2')
 
     assert dep.accepts_prereleases()
+
+
+def test_basic_dependency():
+    dep = Dependency('foo', '1.2.3')
+
+    assert 'foo' == dep.name
+    assert '==1.2.3' == dep.normalized_constraint
+    assert 'foo==1.2.3' == dep.normalized_name
+    assert not dep.optional
+    assert '1.2.3' == dep.constraint
+    assert '1.2.3' == dep.pretty_constraint
+    assert not dep.is_vcs_dependency()
+    assert not dep.accepts_prereleases()
+    assert ['*'] == [str(dep.python[0])]
+
+
+def test_vcs_dependency():
+    constraint = {
+        'git': 'https://github.com/sdispater/poet.git',
+        'branch': 'master'
+    }
+    dep = Dependency('foo', constraint)
+
+    assert 'foo' == dep.name
+    assert '' == dep.normalized_constraint
+    assert 'foo' == dep.normalized_name
+    assert not dep.optional
+    assert constraint == dep.constraint
+    assert 'branch master' == dep.pretty_constraint
+    assert dep.is_vcs_dependency()
+    assert not dep.accepts_prereleases()
+    assert ['*'] == [str(dep.python[0])]
+
+
+def test_optional_dependency():
+    constraint = {
+        'version': '^1.2.3',
+        'optional': True
+    }
+
+    dep = Dependency('foo', constraint)
+
+    assert 'foo' == dep.name
+    assert '>=1.2.3,<2.0.0' == dep.normalized_constraint
+    assert 'foo>=1.2.3,<2.0.0' == dep.normalized_name
+    assert dep.optional
+    assert '^1.2.3' == dep.constraint
+    assert '^1.2.3' == dep.pretty_constraint
+    assert not dep.is_vcs_dependency()
+    assert not dep.accepts_prereleases()
+    assert ['*'] == [str(dep.python[0])]
+
+
+def test_python_restricted_dependency():
+    constraint = {
+        'version': '^1.2.3',
+        'python': '~2.7'
+    }
+
+    dep = Dependency('foo', constraint)
+
+    assert 'foo' == dep.name
+    assert '>=1.2.3,<2.0.0' == dep.normalized_constraint
+    assert 'foo>=1.2.3,<2.0.0' == dep.normalized_name
+    assert not dep.optional
+    assert '^1.2.3' == dep.constraint
+    assert '^1.2.3' == dep.pretty_constraint
+    assert not dep.is_vcs_dependency()
+    assert not dep.accepts_prereleases()
+    assert ['~2.7'] == [str(dep.python[0])]

@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import tempfile
-import subprocess
-import toml
 
 import os
 import shutil
+import subprocess
 
-from hashlib import sha256
+from packaging.utils import canonicalize_name
 from pip.download import unpack_url
 from pip.index import Link
 from piptools.resolver import Resolver
@@ -18,16 +17,18 @@ from piptools.utils import is_pinned_requirement, key_from_req
 
 from .locations import CACHE_DIR
 from .package.pip_dependency import PipDependency
+from .utils.helpers import call, template
 
 
 class Installer(object):
 
     UNSAFE = ['setuptools']
 
-    def __init__(self, command, repository):
+    def __init__(self, command, repository, with_progress=False):
         self._command = command
         self._poet = command.poet
         self._repository = repository
+        self._with_progress = with_progress
 
     def install(self, features=None, dev=True):
         """
@@ -63,27 +64,52 @@ class Installer(object):
         for feature, packages in lock.features.items():
             if feature in features:
                 for package in packages:
-                    featured_packages.add(package.replace('_', '-').lower())
+                    featured_packages.add(canonicalize_name(package))
 
         for dep in deps:
             name = dep.name
 
+            # Package is optional but is not featured
             if dep.optional and name not in featured_packages:
                 continue
 
+            # Checking Python version
+            if dep.is_python_restricted():
+                python_version = self._command.python_version
+                if not any([python_version in python for python in dep.python]):
+                    # If the package is not compatible
+                    # with the current Python version
+                    # we do not install
+                    if self._command.output.is_verbose():
+                        self._command.line(
+                            ' - Skipping <info>{}</> '
+                            '(Specifies Python <comment>{}</> and current Python is <comment>{}</>)'
+                            .format(name, ','.join([str(p) for p in dep.python]), python_version)
+                        )
+                    continue
+
+
+            cmd = [self._command.pip(), 'install', dep.normalized_name]
+
             if dep.is_vcs_dependency():
                 constraint = dep.pretty_constraint
+
+                # VCS must be updated to be installed
+                cmd.append('-U')
             else:
-                constraint = dep.normalized_constraint.replace('==', '')
+                constraint = dep.constraint.replace('==', '')
 
-            self._command.line('  - Installing <info>{}</> (<comment>{}</>)'.format(name, constraint))
+            message = (
+                ' - Installing <info>{}</> (<comment>{}</>)'
+                .format(name, constraint)
+            )
+            end_message  = (
+                'Installed <info>{}</> (<comment>{}</>)'
+                .format(name, constraint)
+            )
+            error_message = 'Error while installing [{}]'.format(name)
 
-            with open(os.devnull) as devnull:
-                try:
-                    subprocess.check_output([self._command.pip(), 'install', dep.normalized_name], stderr=devnull)
-                except subprocess.CalledProcessError as e:
-                    self._command.error('Error while installing [{}] ({})'.format(name, str(e)))
-                    break
+            self._progress(cmd, message[3:], end_message, message, error_message)
 
     def update(self, packages=None, features=None, dev=True):
         if self._poet.is_lock():
@@ -111,64 +137,72 @@ class Installer(object):
         for feature, _packages in self._poet.features.items():
             if feature in features:
                 for package in _packages:
-                    featured_packages.add(package.replace('_', '-').lower())
+                    featured_packages.add(canonicalize_name(package))
 
         # Removing optional packages unless they are featured packages
-        deps = [dep for dep in deps if not dep.optional or dep.optional and dep.name in featured_packages]
+        deps = [
+            dep
+            for dep in deps
+            if not dep.optional
+               or dep.optional and dep.name in featured_packages
+        ]
 
         if packages:
-            packages = [p for p in self._resolve(deps) if p['name'] in packages]
+            packages = [p for p in self.resolve(deps) if p['name'] in packages]
         else:
-            packages = self._resolve(deps)
+            packages = self.resolve(deps)
 
         deps = [PipDependency(p['name'], p['version']) for p in packages]
 
-        to_act_on = []
-        for i, dep in enumerate(deps):
-            action = None
-            from_ = None
-            found = False
-            for j, current_dep in enumerate(current_deps):
-                name = dep.name
-                current_name = current_dep.name
-                version = dep.normalized_constraint
-                current_version = current_dep.normalized_constraint
+        delete = not packages and not features
+        actions = self._resolve_update_actions(deps, current_deps, delete=delete)
 
-                if name == current_name:
-                    found = True
-
-                    if version == current_version:
-                        break
-
-                    action = 'update'
-                    from_ = current_dep
-                    break
-
-            if not found:
-                action = 'install'
-
-            if action:
-                to_act_on.append((action, from_, dep))
-
-        if not to_act_on:
-            self._command.line('  - <info>Dependencies already up-to-date!</info>')
+        if not actions:
+            self._command.line(' - <info>Dependencies already up-to-date!</info>')
 
             return
 
+        installs = len([a for a in actions if a[0] == 'install'])
+        updates = len([a for a in actions if a[0] == 'update'])
+        uninstalls = len([a for a in actions if a[0] == 'remove'])
+
+        summary = []
+        if updates:
+            summary.append('<comment>{}</> updates'.format(updates))
+
+        if installs:
+            summary.append('<comment>{}</> installations'.format(installs))
+
+        if uninstalls:
+            summary.append('<comment>{}</> uninstallations'.format(uninstalls))
+
+        if len(summary) > 1:
+            summary = ', '.join(summary)
+        else:
+            summary = summary[0]
+
+        self._command.line(' - Summary: {}'.format(summary))
+
         error = False
-        for action, from_, dep in to_act_on:
-            cmd = [self._command.pip(), 'install', dep.normalized_name]
+        for action, from_, dep in actions:
+            cmd = [self._command.pip()]
             description = 'Installing'
-            if action == 'update':
+
+            if action == 'remove':
+                description = 'Removing'
+                cmd += ['uninstall', dep.normalized_name, '-y']
+            elif action == 'update':
                 description = 'Updating'
-                cmd.append('-U')
+                cmd += ['install', dep.normalized_name, '-U']
+            else:
+                cmd += ['install', dep.normalized_name]
 
             name = dep.name
 
             if dep.is_vcs_dependency():
                 constraint = dep.pretty_constraint
             else:
-                constraint = dep.normalized_constraint.replace('==', '')
+                constraint = dep.constraint.replace('==', '')
 
             version = '<comment>{}</>'.format(constraint)
 
@@ -176,25 +210,23 @@ class Installer(object):
                 if from_.is_vcs_dependency():
                     constraint = from_.pretty_constraint
                 else:
-                    constraint = from_.normalized_constraint.replace('==', '')
+                    constraint = from_.constraint.replace('==', '')
 
                 version = '<comment>{}</> -> '.format(constraint) + version
 
-            self._command.line('  - {} <info>{}</> ({})'.format(description, name, version))
+            message = ' - {} <info>{}</> ({})'.format(description, name, version)
+            start_message = message[3:]
+            end_message = '{} <info>{}</> ({})'.format(description.replace('ing', 'ed'), name, version)
+            error_message = 'Error while {} [{}]'.format(description.lower(), name)
 
-            with open(os.devnull) as devnull:
-                try:
-                    subprocess.check_output(cmd, stderr=devnull)
-                except subprocess.CalledProcessError as e:
-                    error = True
-                    self._command.error('Error while installing [{}] ({})'.format(name, str(e)))
-                    break
+            self._progress(cmd, start_message, end_message, message, error_message)
 
         if not error:
+            # If everything went well, we write down the lock file
             features = {}
             for name, featured_packages in self._poet.features.items():
-                name = name.replace('_', '-').lower()
-                features[name] = [p.replace('_', '-').lower() for p in featured_packages]
+                name = canonicalize_name(name)
+                features[name] = [canonicalize_name(p) for p in featured_packages]
 
             self._write_lock(packages, features)
 
@@ -211,13 +243,25 @@ class Installer(object):
         if dev:
             deps += self._poet.pip_dev_dependencies
 
-        packages = self._resolve(deps)
+        packages = self.resolve(deps)
         features = {}
         for name, featured_packages in self._poet.features.items():
-            name = name.replace('_', '-').lower()
-            features[name] = [p.replace('_', '-').lower() for p in featured_packages]
+            name = canonicalize_name(name)
+            features[name] = [canonicalize_name(p) for p in featured_packages]
 
         self._write_lock(packages, features)
+
+    def resolve(self, deps):
+        if not self._with_progress:
+            self._command.line(' - <info>Resolving dependencies</>')
+
+            return self._resolve(deps)
+
+        with self._spin(
+            '<info>Resolving dependencies</>',
+            '<info>Resolving dependencies</>'
+        ):
+            return self._resolve(deps)
 
     def _resolve(self, deps):
         # Checking if we should active prereleases
@@ -232,7 +276,6 @@ class Installer(object):
         command = get_pip_command()
         opts, _ = command.parse_args([])
 
-        self._command.line('  - <info>Resolving dependencies</>')
         resolver = Resolver(
             constraints, PyPIRepository(opts, command._build_session(opts)),
             cache=DependencyCache(CACHE_DIR),
@@ -252,11 +295,11 @@ class Installer(object):
 
             dependencies = cache[name][list(cache[name].keys())[0]]
             for dep in dependencies:
-                dep = dep.replace('_', '-').lower()
+                dep = canonicalize_name(dep)
                 if dep not in reversed_dependencies:
                     reversed_dependencies[dep] = set()
 
-                reversed_dependencies[dep].add(name.replace('_', '-').lower())
+                reversed_dependencies[dep].add(canonicalize_name(name))
 
         hashes = resolver.resolve_hashes(pinned)
         packages = []
@@ -279,7 +322,6 @@ class Installer(object):
             # Figuring out category and optionality
             category = None
             optional = False
-            ignored = False
 
             # Checking if it's a main dependency
             for dep in deps:
@@ -297,9 +339,6 @@ class Installer(object):
                         for dep in deps:
                             if dep.name != parent:
                                 continue
-
-                            if dep.name in self.UNSAFE and len(parent) == 1:
-                                return cat, opt, True
 
                             opt = dep.optional
 
@@ -327,17 +366,99 @@ class Installer(object):
                 category = 'main'
                 optional = False
 
+            if not isinstance(checksum, list):
+                checksum = [checksum]
+
+            # Retrieving Python restriction if any
+            python = self._get_pythons_for_package(
+                name, reversed_dependencies, deps
+            )
+            python = list(python)
+
+            if '*' in python:
+                # If at least one parent gave a wildcard
+                # Then it should be installed for any Python version
+                python = ['*']
+
             package = {
                 'name': name,
                 'version': version,
                 'checksum': checksum,
                 'category': category,
-                'optional': optional
+                'optional': optional,
+                'python': python
             }
 
             packages.append(package)
 
         return sorted(packages, key=lambda p: p['name'].lower())
+
+    def _resolve_update_actions(self, deps, current_deps, delete=True):
+        """
+        Determine actions on depenncies.
+        
+        :param deps: New dependencies
+        :type deps: list[poet.package.PipDependency]
+        
+        :param current_deps: Current dependencies
+        :type current_deps: list[poet.package.PipDependency]
+        
+        :param delete: Whether to add delete actions or not
+        :type delete: bool
+        
+        :return: List of actions to execute
+        :type: list[tuple]
+        """
+        actions = []
+        for dep in deps:
+            action = None
+            from_ = None
+            found = False
+
+            for current_dep in current_deps:
+                name = dep.name
+                current_name = current_dep.name
+                version = dep.normalized_constraint
+                current_version = current_dep.normalized_constraint
+
+                if name == current_name:
+                    # Existing dependency
+                    found = True
+
+                    if version == current_version:
+                        break
+
+                    # If version is different we mark it
+                    # as to be updated
+                    action = 'update'
+                    from_ = current_dep
+                    break
+
+            if not found:
+                # New dependency. We mark it as to be installed.
+                action = 'install'
+
+            if action:
+                actions.append((action, from_, dep))
+
+        if not delete:
+            return actions
+
+        # We need to check if we have to remove
+        # any dependency
+        for dep in current_deps:
+            found = False
+
+            for new_dep in deps:
+                if dep.name == new_dep.name:
+                    found = True
+
+                    break
+
+            if not found:
+                actions.append(('remove', None, dep))
+
+        return actions
 
     def _get_vcs_version(self, url, rev):
         tmp_dir = tempfile.mkdtemp()
@@ -347,13 +468,11 @@ class Installer(object):
             unpack_url(Link(url), tmp_dir, download_dir=tmp_dir, only_download=True)
 
             os.chdir(tmp_dir)
-            with open(os.devnull) as devnull:
-                subprocess.check_output(['git', 'checkout', rev], stderr=devnull)
+            call(['git', 'checkout', rev])
 
-                revision = subprocess.check_output(['git', 'rev-parse', rev], stderr=devnull)
-
+            revision = call(['git', 'rev-parse', rev])
             # Getting info
-            revision = revision.decode().strip()
+            revision = revision.strip()
             version = {
                 'git': url,
                 'rev': revision
@@ -368,39 +487,67 @@ class Installer(object):
         return version
 
     def _write_lock(self, packages, features):
-        self._command.line('  - <info>Writing dependencies</>')
+        self._command.line(' - <info>Writing dependencies</>')
 
-        output = {
-            'root': {
-                'name': self._poet.name,
-                'version': self._poet.version
-            },
-            'package': [],
-            'features': features
-        }
-
-        for package in packages:
-            output['package'].append({
-                'name': package['name'],
-                'version': package['version'],
-                'checksum': package.get('checksum'),
-                'category': package['category'],
-                'optional': package['optional']
-            })
+        content = self._generate_lock_content(packages, features)
 
         with open(self._poet.lock_file, 'w') as f:
-            f.write(toml.dumps(output))
+            f.write(content)
 
-    @classmethod
-    def _hash(cls, filename):
-        _hash = sha256()
+    def _generate_lock_content(self, packages, features):
+        lock_template = template('poetry.lock')
 
-        with open(filename, 'rb') as f:
-            while True:
-                chunk = f.read(8192)
-                if not chunk:
+        return lock_template.render(
+            name=self._poet.name,
+            version=self._poet.version,
+            packages=packages,
+            features=features
+        )
+
+    def _get_pythons_for_package(self, name, reversed_dependencies, deps):
+        pythons = set()
+        if name not in reversed_dependencies:
+            # Main dependency
+            for dep in deps:
+                if name == dep.name:
+                    for p in dep.python:
+                        pythons.add(str(p))
+
                     break
 
-                _hash.update(chunk)
+            if not len(pythons):
+                pythons.add('*')
 
-        return _hash.hexdigest()
+            return pythons
+
+        parents = reversed_dependencies[name]
+
+        for parent in parents:
+            parent_pythons = self._get_pythons_for_package(
+                parent, reversed_dependencies, deps
+            )
+
+            pythons = pythons.union(parent_pythons)
+
+        if not len(pythons):
+            pythons.add('*')
+
+        return pythons
+
+    def _call(self, cmd, error_message):
+        try:
+            return call(cmd)
+        except subprocess.CalledProcessError as e:
+            raise Exception(error_message + ' ({})'.format(str(e)))
+
+    def _progress(self, cmd, start_message, end_message, default_message, error_message):
+        if not self._with_progress:
+            self._command.line(default_message)
+
+            return self._call(cmd, error_message)
+
+        with self._spin(start_message, end_message):
+            return self._call(cmd, error_message)
+
+    def _spin(self, start_message, end_message):
+        return self._command.spin(start_message, end_message)

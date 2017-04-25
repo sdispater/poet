@@ -1,6 +1,6 @@
 [package]
 name = "pypoet"
-version = "0.3.2"
+version = "0.4.0-beta.0"
 description = "Poet helps you declare, manage and install dependencies of Python projects, ensuring you have the right stack everywhere."
 
 license = "MIT"
@@ -27,13 +27,16 @@ markdown-readme = ["pypandoc"] # Adds support for markdown readmes
 [dependencies]
 toml = "^0.9"
 requests = "^2.13"
+requests-toolbelt = "^0.7"
 semantic_version = "^2.6"
 pygments = "^2.2"
 twine = "^1.8"
 wheel = "^0.29"
-pip-tools = "^1.9.0-rc.2"
-cleo = { git = "https://github.com/sdispater/cleo.git", branch = "develop" }
-pathlib2 = "^2.2"  # Only needed for Python 2.7
+pip-tools = "^1.9"
+cleo = "^0.6"
+jinja2 = "^2.9.6"
+packaging = "^16.8"
+pathlib2 = { version = "^2.2", python = "~2.7" }
 
 # Extras
 pypandoc = { version = "^1.3.3", optional = true }

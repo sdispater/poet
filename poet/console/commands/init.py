@@ -2,8 +2,6 @@
 
 import os
 import re
-import subprocess
-import toml
 
 from collections import OrderedDict
 from pygments import highlight
@@ -13,6 +11,7 @@ from .command import Command
 from ...version_parser import VersionParser
 from ...version_selector import VersionSelector
 from ...utils.lexers import TOMLLexer
+from ...utils.helpers import call, template
 from ...build import Builder
 
 
@@ -21,6 +20,7 @@ class InitCommand(Command):
     Creates a basic <comment>poetry.toml</> file in current directory.
 
     init
+        { template? : Template to use }
         {--name= : Name of the package}
         {--description= : Description of the package}
         {--author= : Author name of the package}
@@ -37,6 +37,7 @@ in the current directory.
 
 <info>poet init</info>
 """
+
     def __init__(self):
         self._git_config = None
 
@@ -50,6 +51,23 @@ in the current directory.
             formatter.format_block('Welcome to the Poet config generator', 'bg=blue;fg=white', True),
             ''
         ])
+
+        template_name = self.argument('template')
+        if template_name:
+            self.line([
+                '',
+                'Using <comment>{}</> template to create '
+                'your <info>poetry.toml</> config.'.format(template_name),
+                ''
+            ])
+
+            if template_name == 'default':
+                output = template('poetry.toml').render()
+
+                with open(self.poet_file, 'w') as fd:
+                    fd.write(output)
+
+            return
 
         self.line([
             '',
@@ -101,6 +119,11 @@ in the current directory.
 
         author = self.ask(question)
 
+        if not author:
+            authors = []
+        else:
+            authors = [author]
+
         license = self.option('license') or ''
 
         question = self.create_question(
@@ -115,9 +138,8 @@ in the current directory.
 
         requirements = []
 
-        question = '<question>Would you like to define your dependencies' \
-                   ' (require) interactively [<comment>yes</comment>]?</>\n' \
-                   '> '
+        question = 'Would you like to define your dependencies' \
+                   ' (require) interactively?'
         if self.confirm(question, True):
             requirements = self._format_requirements(
                 self._determine_requirements(self.option('dependency'))
@@ -126,51 +148,21 @@ in the current directory.
         dev_requirements = []
 
         question = '<question>Would you like to define your dev dependencies' \
-                   ' (require-dev) interactively [<comment>yes</comment>]?</>\n' \
-                   '> '
+                   ' (require-dev) interactively'
         if self.confirm(question, True):
             dev_requirements = self._format_requirements(
                 self._determine_requirements(self.option('dev-dependency'))
             )
 
-        config = OrderedDict([
-            ('package', OrderedDict([
-                ('name', name)
-            ]))
-        ])
-
-        output = toml.dumps(config)
-
-        config = {'version': version}
-        output += toml.dumps(config)
-
-        config = {}
-        if description:
-            config['description'] = description
-            output += toml.dumps(config)
-
-        config = {}
-        if author:
-            config['authors'] = [author]
-            output += toml.dumps(config)
-
-        config = {}
-        if license:
-            config['license'] = license
-            output += toml.dumps(config)
-
-        output += '\n'
-
-        if requirements:
-            config = {'dependencies': requirements}
-
-            output += toml.dumps(config)
-            output += '\n'
-
-        if dev_requirements:
-            config = {'dev-dependencies': dev_requirements}
-            output += toml.dumps(config)
-            output += '\n'
+        output = template('poetry.toml.jinja2').render(
+            name=name,
+            version=version,
+            description=description,
+            authors=authors,
+            license=license,
+            dependencies=requirements,
+            dev_dependencies=dev_requirements
+        )
 
         if self.input.is_interactive():
             self.line('<info>Generated file</>')
@@ -188,7 +180,7 @@ in the current directory.
                 self.line(['', output, ''])
 
             if not self.confirm(
-                'Do you confirm generation [<comment>yes</comment>]? ', True
+                'Do you confirm generation?', True
             ):
                 self.line('<error>Command aborted</error>')
 
@@ -216,7 +208,7 @@ in the current directory.
                 result.append(requirement['name'] + ' ' + requirement['version'])
 
         version_parser = VersionParser()
-        question = self.create_question('Search for a package: ')
+        question = self.create_question('Search for a package:')
         package = self.ask(question)
         while package is not None:
             matches = self._find_packages(package)
@@ -246,7 +238,7 @@ in the current directory.
                     )
 
                     package = self.choice(
-                        '\nEnter package # to add, or the complete package name if it is not listed: ',
+                        '\nEnter package # to add, or the complete package name if it is not listed',
                         choices,
                         attempts=3
                     )
@@ -255,7 +247,7 @@ in the current directory.
             if package is not False and ' ' not in package:
                 question = self.create_question(
                     'Enter the version constraint to require '
-                    '(or leave blank to use the latest version): '
+                    '(or leave blank to use the latest version):'
                 )
                 question.attempts = 3
                 question.validator = lambda x: (x or '').strip() or False
@@ -275,7 +267,7 @@ in the current directory.
             if package is not False:
                 requires.append(package)
 
-            package = self.ask('\nSearch for a package: ')
+            package = self.ask('\nSearch for a package:')
 
         return requires
 
@@ -318,9 +310,7 @@ in the current directory.
         return parser.parse_name_version_pairs(requirements)
 
     def git_config(self):
-        config_list = subprocess.check_output(
-            ['git', 'config', '-l']
-        ).decode()
+        config_list = call(['git', 'config', '-l'])
 
         git_config = {}
 

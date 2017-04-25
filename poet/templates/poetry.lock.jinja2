@@ -1,0 +1,62 @@
+# This file is generated automatically by Poet
+# from the poetry.toml configuration file.
+#
+# This file should not be modified directly.
+
+[root]
+name = "{{ name }}"
+version = "{{ version }}"
+
+{% if features %}
+[features]
+{% for name in sorted(list(features.keys())) %}
+{{ name }} = [
+    {% for package in sorted(features[name]) %}
+    "{{ package }}"{% if not loop.last %},{% endif %}
+
+    {% endfor %}
+]
+{% endfor %}
+{% endif %}
+
+{% if packages %}
+{% for package in packages %}
+[[package]]
+name = "{{ package['name'] }}"
+{% if not isinstance(package['version'], dict) %}
+version = "{{ package['version'] }}"
+{% endif %}
+category = "{{ package['category'] }}"
+{% if package['optional'] %}
+optional = true
+{% else %}
+optional = false
+{% endif %}
+{% if 'checksum' in package %}
+checksum = [
+    {% for hash in package['checksum'] %}
+    "{{ hash }}"{% if not loop.last %},{% endif %}
+
+    {% endfor %}
+]
+{% else %}
+checksum = []
+{% endif %}
+{% if package['python'] %}
+python = [
+    {% for python in package['python'] %}
+    "{{ python }}"{% if not loop.last %},{% endif %}
+
+    {% endfor %}
+]
+{% else %}
+python = []
+{% endif %}
+{% if isinstance(package['version'], dict) %}
+[package.version]
+git = "{{ package['version']['git'] }}"
+rev = "{{ package['version']['rev'] }}"
+{% endif %}
+
+{% endfor %}
+{% endif %}

@@ -4,11 +4,13 @@ import os
 import sys
 import glob
 import distutils
+import re
 
-from cleo import Command as BaseCommand, InputOption
+from cleo import Command as BaseCommand
+from semantic_version import Version
 
-from ...repositories import PyPiRepository
 from ...poet import Poet
+from ...utils.helpers import call
 
 
 class Command(BaseCommand):
@@ -17,8 +19,9 @@ class Command(BaseCommand):
         super(Command, self).__init__()
 
         self._poet = None
-        self._repository = PyPiRepository()
         self._virtual_env = None
+
+        self._python_version = None
 
     @property
     def poet_file(self):
@@ -47,16 +50,6 @@ class Command(BaseCommand):
     def has_lock(self):
         return os.path.exists(self.lock_file)
 
-    def configure(self):
-        super(Command, self).configure()
-
-        # Adding --i|index option
-        self.add_option(
-            'index', 'i',
-            InputOption.VALUE_REQUIRED,
-            'The index to use'
-        )
-
     def execute(self, i, o):
         """
         Executes the command.
@@ -64,11 +57,6 @@ class Command(BaseCommand):
         # Adding warning style
         self.set_style('warning', 'black', 'yellow')
         self.set_style('question', 'blue')
-
-        index = self.option('index')
-
-        if index:
-            self._repository = PyPiRepository(index)
 
         self.init_virtualenv()
 
@@ -112,11 +100,6 @@ class Command(BaseCommand):
                 'site-packages'
             )
 
-        import site
-        sys.path.insert(0, self._virtual_env)
-
-        site.addsitedir(self._virtual_env)
-
     def pip(self):
         if not self._virtual_env:
             return distutils.spawn.find_executable('pip')
@@ -124,3 +107,24 @@ class Command(BaseCommand):
         return os.path.realpath(
             os.path.join(self._virtual_env, '..', '..', '..', 'bin', 'pip')
         )
+
+    def python(self):
+        if not self._virtual_env:
+            return distutils.spawn.find_executable('python')
+
+        return os.path.realpath(
+            os.path.join(self._virtual_env, '..', '..', '..', 'bin', 'python')
+        )
+
+    @property
+    def python_version(self):
+        if self._python_version is None:
+            output = call([self.python(), '-V'])
+
+            m = re.match('Python ([\d.]+)', output)
+            if not m:
+                raise RuntimeError('Unable to get the Python version.')
+
+            self._python_version = Version.coerce(m.group(1))
+
+        return self._python_version

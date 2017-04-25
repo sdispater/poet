@@ -22,13 +22,6 @@ class Poet(BasePoet):
 
 
 class InstallCommand(BaseCommand):
-    """
-    Install and lock dependencies specified in the <comment>poetry.toml</comment> file.
-
-    install
-        { --f|features=* : Features to install }
-        {--no-dev : Do not install dev dependencies}
-    """
 
     @property
     def poet_file(self):
@@ -41,9 +34,11 @@ class InstallCommand(BaseCommand):
     def pip(self):
         return 'pip'
 
+    def python(self):
+        return 'python'
 
-def test_install_default(mocker):
-    sub = mocker.patch('subprocess.check_output')
+
+def test_install_default(mocker, check_output):
     resolve = mocker.patch('piptools.resolver.Resolver.resolve')
     reverse_dependencies = mocker.patch('piptools.resolver.Resolver.reverse_dependencies')
     resolve.return_value = [InstallRequirement.from_line('pendulum==1.2.0')]
@@ -53,23 +48,23 @@ def test_install_default(mocker):
 
     command = app.find('install')
     command_tester = CommandTester(command)
-    command_tester.execute([('command', command.name)])
+    command_tester.execute([('command', command.name), ('--no-progress', True)])
 
     assert os.path.exists(DUMMY_LOCK)
     os.remove(DUMMY_LOCK)
 
-    sub.assert_called_once()
+    check_output.assert_called_once()
 
     output = command_tester.get_display()
     expected = """
 Locking dependencies to poetry.lock
 
-  - Resolving dependencies
-  - Writing dependencies
+ - Resolving dependencies
+ - Writing dependencies
 
 Installing dependencies
 
-  - Installing pendulum (1.2.0)
+ - Installing pendulum (1.2.0)
 """
 
     assert output == expected

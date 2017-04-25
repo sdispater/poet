@@ -2,58 +2,23 @@
 
 import os
 import re
+import warnings
 
-from setuptools import Extension
 from setuptools.dist import Distribution
+from setuptools.extension import Extension
 from pip.commands.wheel import WheelCommand
+from pip.status_codes import SUCCESS
 from semantic_version import Spec, Version
 
-from .._compat import Path, PY2, encode, decode
-
-
-SETUP_TEMPLATE = """# -*- coding: utf-8 -*-
-
-from setuptools import setup
-
-kwargs = dict(
-    name={name},
-    version={version},
-    description={description},
-    long_description={long_description},
-    author={author},
-    author_email={author_email},
-    url={url},
-    license={license},
-    keywords={keywords},
-    classifiers={classifiers},
-    entry_points={entry_points},
-    install_requires={install_requires},
-    tests_require={tests_require},
-    extras_require={extras_require},
-    packages={packages},
-    py_modules={py_modules},
-    script_name='setup.py',
-    include_package_data=True
-)
-"""
-
-EXTENSIONS_TEMPLATE = """
-from setuptools import Extension
-
-kwargs['ext_modules'] = [
-    {extensions}
-]
-"""
-
-EXTENSION_TEMPLATE = """Extension(
-        '{module}',
-        {source}
-    )"""
+from .._compat import Path, PY2, encode
+from ..utils.helpers import template
 
 
 class Builder(object):
     """
     Tool to transform a poet file to a setup() instruction.
+    
+    It also creates the MANIFEST.in file if necessary.
     """
 
     AUTHOR_REGEX = re.compile('(?u)^(?P<name>[- .,\w\d\'’"()]+) <(?P<email>.+?)>$')
@@ -68,7 +33,7 @@ class Builder(object):
 
     def build(self, poet, **options):
         """
-        Builds a poet.
+        Builds a package from a Poet instance
 
         :param poet: The poet to build.
         :type poet: poet.poet.Poet
@@ -106,12 +71,23 @@ class Builder(object):
         # Building wheel if necessary
         if not options.get('no_wheels'):
             command = WheelCommand()
-            command_args = ['--no-index', '--no-deps', '--wheel-dir', 'dist', 'dist/{}'.format(poet.archive)]
+            command_args = [
+                '--no-index',
+                '--no-deps',
+                '-q',
+                '--wheel-dir', 'dist',
+                'dist/{}'.format(poet.archive)
+            ]
 
             if options.get('universal', True):
                 command_args.append('--build-option=--universal')
 
-            command.main(command_args)
+            with warnings.catch_warnings():
+                warnings.filterwarnings('ignore', category=UserWarning)
+                status = command.main(command_args)
+
+            if status != SUCCESS:
+                raise Exception('An error occurred while executing command.')
 
     def _setup(self, poet, **options):
         """
@@ -124,7 +100,7 @@ class Builder(object):
         """
         setup_kwargs = {
             'name': poet.name,
-            'version': poet.version,
+            'version': poet.normalized_version,
             'description': poet.description,
             'long_description': poet.readme,
             'include_package_data': True,
@@ -155,6 +131,17 @@ class Builder(object):
         return setup_kwargs
 
     def _author(self, poet):
+        """
+        Build the author information from a Poet instance.
+        
+        Transforms a author in the form "name <email>" into
+        a proper dictionary.
+        
+        :param poet: The Poet instance for which to build.
+        :type poet: poet.poet.Poet
+        
+        :rtype: dict
+        """
         m = self.AUTHOR_REGEX.match(poet.authors[0])
 
         name = m.group('name')
@@ -225,8 +212,16 @@ class Builder(object):
             'console_scripts': []
         }
 
+        # Generic entry points
+        for category, entry_points in poet.entry_points.items():
+            entry_points[category] = []
+
+            for name, script in entry_points.items():
+                entry_points[category].append('{} = {}'.format(name, script))
+
+        # Console scripts entry points
         for name, script in poet.scripts.items():
-            entry_points['console_scripts'].append('{}={}'.format(name, script))
+            entry_points['console_scripts'].append('{} = {}'.format(name, script))
 
         return entry_points
 
@@ -310,9 +305,10 @@ class Builder(object):
         includes = poet.include
         packages = []
         modules = []
+        package_dirs = {}
         crawled = []
         excluded = []
-        base_path = Path(poet.base_dir)
+        root = Path(poet.base_dir)
 
         for exclude in poet.exclude + poet.ignore:
             if not exclude:
@@ -321,31 +317,98 @@ class Builder(object):
             if exclude.startswith('/'):
                 exclude = exclude[1:]
 
-            for exc in base_path.glob(exclude):
+            for exc in root.glob(exclude):
                 if exc.suffix == '.py':
-                    exc = exc.relative_to(base_path)
+                    exc = exc.relative_to(root)
                     excluded.append('.'.join(exc.with_suffix('').parts))
+
+        if not isinstance(includes, list):
+            includes = [includes]
+
+        for include in includes:
+            if isinstance(include, dict):
+                settings = self._find_packages_from(
+                    root,
+                    include['from'],
+                    include['include'],
+                    include.get('as', ''),
+                    excluded=excluded,
+                    crawled=crawled
+                )
+            else:
+                settings = self._find_packages_from(
+                    root,
+                    '',
+                    include,
+                    excluded=excluded,
+                    crawled=crawled
+                )
+
+            packages += settings['packages']
+            modules += settings['modules']
+            package_dirs.update(settings.get('package_dirs', {}))
+
+        packages = [p for p in packages if p not in excluded]
+        modules = [m for m in modules if m not in excluded]
+
+        settings = {
+            'packages': packages,
+            'py_modules': modules
+        }
+
+        package_dir = {}
+        for package_name, directory in package_dirs.items():
+            package_dir[package_name] = directory.as_posix()
+
+        if package_dir:
+            settings['package_dir'] = package_dir
+
+        return settings
+
+    def _find_packages_from(self, root, base_dir, includes,
+                            package_name=None, excluded=None, crawled=None):
+        package_dirs = {}
+        packages = []
+        modules = []
+
+        if package_name is not None:
+            package_dirs[package_name] = Path(base_dir)
+
+        if excluded is None:
+            excluded = []
+
+        if crawled is None:
+            crawled = []
+
+        if not isinstance(includes, list):
+            includes = [includes]
+
+        if not isinstance(base_dir, Path):
+            base_dir = Path(base_dir)
+
+        base_path = root / base_dir
 
         for include in includes:
             dirs = []
             others = []
+
             for element in base_path.glob(include):
                 if element.is_dir():
                     dirs.append(element.relative_to(base_path))
                 else:
                     others.append(element.relative_to(base_path))
 
-            m = re.match('^(.+)/\*\*/\*(\..+)?$', include)
+            m = re.match('^([^./]+)/\*\*/\*(\..+)?$', include)
             if m:
                 # {dir}/**/* will not take the root directory
                 # So we add it
                 dirs.insert(0, Path(m.group(1)))
 
             for dir in dirs:
-                package = '.'.join(dir.parts)
-
                 if dir in crawled:
                     continue
+
+                package = '.'.join(dir.parts)
 
                 # We have a package
                 real_dir = base_path / dir
@@ -362,12 +425,12 @@ class Builder(object):
                     else:
                         modules += ['.'.join(c.parts) for c in filtered_children]
 
-                    crawled += children
+                    crawled += [base_path / child for child in children]
 
-                crawled.append(dir)
+                crawled.append(real_dir)
 
             for element in others:
-                if element in crawled or element.suffix == '.pyc':
+                if base_path / element in crawled or element.suffix == '.pyc':
                     continue
 
                 if element.suffix == '.py' and element.name != '__init__.py':
@@ -388,26 +451,47 @@ class Builder(object):
                         # We actually have a package
                         packages.append('.'.join(dir.parts))
 
-                        crawled.append(dir)
+                        crawled.append(base_path / dir)
 
-                crawled.append(element)
+                crawled.append(base_path / element)
 
         packages = [p for p in packages if p not in excluded]
         modules = [m for m in modules if m not in excluded]
 
-        return {
+        settings = {
             'packages': packages,
-            'py_modules': modules
+            'modules': modules
         }
 
+        if package_dirs:
+            settings['package_dirs'] = package_dirs
+
+        return settings
+
     def _ext_modules(self, poet):
+        """
+        Builds the extension modules.
+        
+        Transforms the extensions section:
+        
+        [extensions]
+        "my.module" = "my/module.c"
+        
+        to a proper extension:
+        
+        Extension('my.module', 'my/module.c')
+        
+        :param poet: The Poet instance for which to build.
+        :type poet: poet.poet.Poet
+        
+        :rtype: dict 
+        """
         extensions = []
         for module, source in poet.extensions.items():
             if not isinstance(source, list):
                 source = [source]
 
-            ext = Extension(module, source)
-            extensions.append(ext)
+            extensions.append(Extension(module, source))
 
         return {
             'ext_modules': extensions
@@ -416,34 +500,15 @@ class Builder(object):
     def _write_setup(self, setup, dest):
         parameters = setup.copy()
 
-        extensions = []
-        if parameters['ext_modules']:
-            for extension in parameters['ext_modules']:
-                module = extension.name
-                source = extension.sources
-
-                extensions.append(
-                    EXTENSION_TEMPLATE.format(
-                        module=module,
-                        source=repr(source)
-                    )
-                )
-
-            del parameters['ext_modules']
-
         for key in parameters.keys():
             value = parameters[key]
 
-            if value is not None:
+            if value is not None and not isinstance(value, (list, dict)):
                 parameters[key] = repr(value)
 
+        setup_template = template('setup.py')
         with open(dest, 'w') as f:
-            f.write(SETUP_TEMPLATE.format(**parameters))
-
-            if extensions:
-                f.write(EXTENSIONS_TEMPLATE.format(extensions='\n    '.join(extensions)))
-
-            f.write('\nsetup(**kwargs)')
+            f.write(setup_template.render(**parameters))
 
     def _write_manifest(self, manifest):
         with open(manifest, 'w') as f:

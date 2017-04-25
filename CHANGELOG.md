@@ -1,5 +1,24 @@
 # Change Log
 
+## [Unreleased]
+
+### Added
+
+- Added support for Python version restricted dependencies: `pathlib2 = { version = "^2.2", python = "~2.7" }`
+- Added ability to create a default template in the `init` command.
+- Added a new way to declare the `include` section to reproduce the setup `package_dir` feature.
+
+### Changed
+
+- Improved CLI to display visual clues when actions are being performed (spinner).
+- Improved `update` command by removing no longer necessary packages.
+- Improved template for the `init` command.
+
+# Fixed
+
+- Fixes `install` command not properly installing packages.
+
+
 ## [0.3.2] - 2017-04-13
 
 ### Fixed

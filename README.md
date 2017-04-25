@@ -7,13 +7,43 @@ Poet helps you declare, manage and install dependencies of Python projects, ensu
 The package is **highly experimental** at the moment so expect things to change and break. However, if you feel adventurous
 I'd gladly appreciate feedback and pull requests.
 
-![Poet Install](https://raw.githubusercontent.com/sdispater/poet/master/assets/poet-install.gif)
+![Poet Install](https://raw.githubusercontent.com/sdispater/poet/develop/assets/poet-install.gif)
 
 ## Installation
 
 ```bash
 pip install pypoet
 ```
+
+### Enable tab completion for Bash, Fish, or Zsh
+
+`poet` supports generating completion scripts for Bash, Fish, and Zsh.
+See `poet help completions` for full details, but the gist is as simple as using one of the following:
+
+```bash
+# Bash
+$ poet completions bash > /etc/bash_completion.d/poet.bash-completion
+
+# Bash (macOS/Homebrew)
+$ poet completions bash > $(brew --prefix)/etc/bash_completion.d/poet.bash-completion
+
+# Fish
+$ poet completions fish > ~/.config/fish/completions/poet.fish
+
+# Zsh
+$ poet completions zsh > ~/.zfunc/_poet
+```
+
+*Note:* you may need to restart your shell in order for the changes to take 
+effect.
+
+For `zsh`, you must then add the following line in your `~/.zshrc` before
+`compinit`:
+
+```zsh
+fpath+=~/.zfunc
+```
+
 
 ## Introduction
 
@@ -106,6 +136,12 @@ It will interactively ask you to fill in the fields, while using some smart defa
 poet init
 ```
 
+However, if you just want a basic template and fill the information directly, you can just do:
+
+```bash
+poet init default
+```
+
 #### Options
 
    * `--name`: Name of the package. 
@@ -148,7 +184,8 @@ poet install -f mysql -f pgsql
 #### Options
 
 * `--no-dev`: Do not install dev dependencies.
-* `-f|--features  Features to install (multiple values allowed)
+* `-f|--features`: Features to install (multiple values allowed).
+* `--no-progress`: Removes the progress display that can mess with some terminals or scripts which don't handle backspace characters.
 * `--index`: The index to use when installing packages.
 
 
@@ -171,6 +208,7 @@ poet update requests toml
 
 #### Options
 
+* `--no-progress`: Removes the progress display that can mess with some terminals or scripts which don't handle backspace characters.
 * `--index`: The index to use when installing packages.
 
 
@@ -217,6 +255,7 @@ poet lock
 
 #### Options
 
+* `--no-progress`: Removes the progress display that can mess with some terminals or scripts which don't handle backspace characters.
 * `-i|--index`: The index to use.
 * `-f|--force`: Force locking.
 
@@ -336,6 +375,18 @@ include = ["package/**/*.py", "package/**/.c"]
 exclude = ["package/excluded.py"]
 ```
 
+If you packages lies elsewhere (say in a `src` directory), you can tell `poet` to find them from there:
+
+```toml
+include = { from = 'src', include = '**/*' }
+```
+
+Similarly, you can tell that the `src` directory represent the `foo` package:
+
+```toml
+include = { from = 'src', include = '**/*', as = 'foo' }
+```
+
 ### `dependencies` and `dev-dependencies`
 
 Poet is configured to look for dependencies on [PyPi](https://pypi.python.org/pypi) by default.
@@ -428,6 +479,20 @@ Here's an example of specifying that you want to use the latest commit on a bran
 ```toml
 [dependencies]
 requests = { git = "https://github.com/kennethreitz/requests.git", branch = "next" }
+```
+
+#### Python restricted dependencies
+
+You can also specify that a dependency should be installed only for specific Python versions:
+
+```toml
+[dependencies]
+pathlib2 = { version = "^2.2", python = "~2.7" }
+```
+
+```toml
+[dependencies]
+pathlib2 = { version = "^2.2", python = ["~2.7", "^3.2"] }
 ```
 
 ### `scripts`

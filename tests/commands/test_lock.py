@@ -17,14 +17,14 @@ def test_lock(app, mocker):
     getcwd.return_value = base_dir
     command = app.find('lock')
     command_tester = CommandTester(command)
-    command_tester.execute([('command', command.name)])
+    command_tester.execute([('command', command.name), ('--no-progress', True)])
 
     output = command_tester.get_display()
     expected = """
 Locking dependencies to poetry.lock
 
-  - Resolving dependencies
-  - Writing dependencies
+ - Resolving dependencies
+ - Writing dependencies
 """
 
     assert expected == output

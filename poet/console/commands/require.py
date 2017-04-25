@@ -2,10 +2,10 @@
 
 from ...version_selector import VersionSelector
 
-from .command import Command
+from .index_command import IndexCommand
 
 
-class RequireCommand(Command):
+class RequireCommand(IndexCommand):
     """
     Add a dependency to the project.
 

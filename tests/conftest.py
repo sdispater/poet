@@ -4,12 +4,49 @@ import pytest
 import tempfile
 import shutil
 
+from cleo.inputs.list_input import ListInput
+from cleo.outputs.console_output import ConsoleOutput
+from cleo.styles import CleoStyle
+
 from poet.console import Application
+from poet.console.commands.command import Command
+
+
+class DummyCommand(Command):
+    """
+    Dummy Command.
+    
+    dummy
+    """
+
+    def __init__(self):
+        super(DummyCommand, self).__init__()
+
+        self.input = ListInput([])
+        self.output = CleoStyle(self.input, ConsoleOutput())
 
 
 @pytest.fixture
 def app():
     return Application()
+
+
+@pytest.fixture
+def command():
+    return DummyCommand()
+
+
+@pytest.fixture
+def check_output(mocker):
+    outputs = {
+        ('python', '-V'): b'Python 3.6.0'
+    }
+    patched = mocker.patch(
+        'subprocess.check_output',
+        side_effect=lambda cmd, *args, **kwargs: outputs.get(tuple(cmd), b'')
+    )
+
+    return patched
 
 
 @pytest.fixture

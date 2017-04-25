@@ -1,0 +1,111 @@
+# -*- coding: utf-8 -*-
+
+from setuptools import setup
+{% if ext_modules %}
+from setuptools import Extension
+{% endif %}
+
+
+kwargs = {
+    'name': {{ name }},
+    'version': {{ version }},
+    'description': {{ description }},
+    'long_description': {{ long_description }},
+    'author': {{ author }},
+    'author_email': {{ author_email }},
+    'url': {{ url }},
+    'license': {{ license }},
+    'keywords': {{ keywords }},
+    {% if classifiers %}
+    'classifiers': [
+        {% for classifier in classifiers %}
+        {{ repr(classifier) }}{% if not loop.last %},{% endif %}
+
+        {% endfor %}
+    ],
+    {% endif %}
+    {% if entry_points %}
+    'entry_points': {
+        {% for category, entries in entry_points.items() %}
+        '{{ category }}': [
+            {% for entry in entries %}
+            '{{ entry }}'{% if not loop.last %},{% endif %}
+
+            {% endfor %}
+        ]
+        {% endfor %}
+    },
+    {% endif %}
+    {% if install_requires %}
+    'install_requires': [
+        {% for dependency in install_requires %}
+        '{{ dependency }}'{% if not loop.last %},{% endif %}
+
+        {% endfor %}
+    ],
+    {% endif %}
+    {% if tests_require %}
+    'tests_require': [
+        {% for dependency in tests_require %}
+        '{{ dependency }}'{% if not loop.last %},{% endif %}
+
+        {% endfor %}
+    ],
+    {% endif %}
+    {% if extras_require %}
+    'extras_require': {
+        {% for extra, dependencies in extras_require.items() %}
+        '{{ extra }}': [
+            {% for dependency in dependencies %}
+            '{{ dependency }}'{% if not loop.last %},{% endif %}
+
+            {% endfor %}
+        ]{% if not loop.last %},{% endif %}
+
+        {% endfor %}
+    },
+    {% endif %}
+    {% if packages %}
+    'packages': [
+        {% for package in packages %}
+        '{{ package }}'{% if not loop.last %},{% endif %}
+
+        {% endfor %}
+    ],
+    {% endif %}
+    {% if py_modules %}
+    'py_modules': [
+        {% for module in py_modules %}
+        '{{ module }}'{% if not loop.last %},{% endif %}
+
+        {% endfor %}
+    ],
+    {% endif %}
+    {% if package_dir %}
+    'package_dir': {
+        {% for package_name, directory in package_dir.items() %}
+        '{{ package_name }}': '{{ directory }}'{% if not loop.last %},{% endif %}
+
+        {% endfor %}
+    },
+    {% endif %}
+    {% if ext_modules %}
+    'ext_modules': [
+        {% for extension in ext_modules %}
+        Extension(
+            '{{ extension.name }}',
+            [
+                {% for src in extension.sources %}
+                '{{ src }}'{% if not loop.last %},{% endif %}
+
+                {% endfor %}
+            ]
+        ){% if not loop.last %},{% endif %}
+
+        {% endfor %}
+    ],
+    {% endif %}
+    'include_package_data': True
+}
+
+setup(**kwargs)
