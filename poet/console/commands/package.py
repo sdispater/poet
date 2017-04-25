@@ -14,18 +14,17 @@ class PackageCommand(Command):
     package
         { --no-universal : Do not build a universal package. }
         { --no-wheels : Build only the source package. }
-        { --c|clean : Make a clean package. }
         { --no-progress : Do not output download progress. }
     """
 
     def handle(self):
         poet = self.poet
 
-        if self.option('clean'):
-            egg_info = os.path.join(poet.base_dir, '{}.egg-info'.format(poet.name))
+        # Cleaning egg-info
+        egg_info = os.path.join(poet.base_dir, '{}.egg-info'.format(poet.name))
 
-            if os.path.exists(egg_info):
-                shutil.rmtree(egg_info)
+        if os.path.exists(egg_info):
+            shutil.rmtree(egg_info)
 
         self.line('')
 
