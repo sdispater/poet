@@ -7,7 +7,7 @@ from collections import OrderedDict
 from pygments import highlight
 from pygments.formatters.terminal import TerminalFormatter
 
-from .command import Command
+from .index_command import IndexCommand
 from ...version_parser import VersionParser
 from ...version_selector import VersionSelector
 from ...utils.lexers import TOMLLexer
@@ -15,7 +15,7 @@ from ...utils.helpers import call, template
 from ...build import Builder
 
 
-class InitCommand(Command):
+class InitCommand(IndexCommand):
     """
     Creates a basic <comment>poetry.toml</> file in current directory.
 

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import os
 import pytest
 import tempfile
 import shutil
@@ -56,3 +57,13 @@ def tmp_dir():
     yield dir_
 
     shutil.rmtree(dir_)
+
+
+@pytest.fixture
+def tmp_file():
+    fd, file_ = tempfile.mkstemp(prefix='poet_')
+    os.close(fd)
+
+    yield dir_
+
+    os.unlink(file_)

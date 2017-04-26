@@ -4,18 +4,10 @@ import os
 
 from ....installer import Installer
 
-from ..command import Command
+from ..index_command import IndexCommand
 
 
-TEMPLATE="""from setuptools import setup
-
-kwargs = {}
-
-setup(**kwargs)
-"""
-
-
-class MakeRequirementsCommand(Command):
+class MakeRequirementsCommand(IndexCommand):
     """
     Renders a requirements.txt file for testing purposes.
 
@@ -26,15 +18,15 @@ class MakeRequirementsCommand(Command):
     def handle(self):
         installer = Installer(self, self._repository)
 
-        deps = self._poet.pip_dependencies
+        deps = self.poet.pip_dependencies
 
         if not self.option('no-dev'):
-            deps += self._poet.pip_dev_dependencies
+            deps += self.poet.pip_dev_dependencies
 
         self.line('')
-        packages = installer._resolve(deps)
+        packages = installer.resolve(deps)
 
-        requirements = os.path.join(os.path.dirname(self.poet_file), 'requirements.txt')
+        requirements = os.path.join(self.poet.base_dir, 'requirements.txt')
 
         with open(requirements, 'w') as f:
             for package in packages:
@@ -45,3 +37,5 @@ class MakeRequirementsCommand(Command):
                     version = '{}=={}'.format(package['name'], version)
 
                 f.write(version + '\n')
+
+        self.line(' - Created <info>requirements.txt</> file')
