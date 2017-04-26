@@ -1,5 +1,13 @@
 # Change Log
 
+## [0.4.1] - 2017-04-26
+
+### Fixed
+
+- Fixes `init` command raising an error when setting dependencies interactively.
+- Fixes `make:requirements` command raising an error.
+
+
 ## [0.4.0] - 2017-04-25
 
 ### Added
@@ -14,9 +22,9 @@
 - Improved `update` command by removing no longer necessary packages.
 - Improved template for the `init` command.
 
-# Fixed
+### Fixed
 
-- Fixes `install` command not properly installing packages.
+- Fixed `install` command not properly installing packages.
 
 
 ## [0.3.2] - 2017-04-13
@@ -46,7 +54,8 @@
 - Properly resolves dependencies categories.
 
 
-[Unreleased]: https://github.com/sdispater/ppoet/compare/0.4.0...master
+[Unreleased]: https://github.com/sdispater/ppoet/compare/0.4.1...master
+[0.4.1]: https://github.com/sdispater/poet/releases/tag/0.4.1
 [0.4.0]: https://github.com/sdispater/poet/releases/tag/0.4.0
 [0.3.2]: https://github.com/sdispater/poet/releases/tag/0.3.2
 [0.3.1]: https://github.com/sdispater/poet/releases/tag/0.3.1

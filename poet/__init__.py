@@ -2,6 +2,6 @@
 
 from .console import Application
 
-__version__ = '0.4.0'
+__version__ = '0.4.1'
 
 app = Application('Poet', __version__)
