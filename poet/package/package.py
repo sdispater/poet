@@ -7,6 +7,14 @@ from ..version_parser import VersionParser, Version
 
 class Package(object):
 
+    STABLE = 0
+    DEV = 20
+
+    STABILITIES = {
+        'stable': STABLE,
+        'dev': DEV
+    }
+
     def __init__(self, name, version):
         self._name = name
         self._version = Version.coerce(version) if not isinstance(version, Version) else version
@@ -31,6 +39,10 @@ class Package(object):
     @property
     def stability(self):
         return self._stability
+
+    @property
+    def stability_priority(self):
+        return self.STABILITIES[self.stability]
 
     @property
     def dependencies(self):

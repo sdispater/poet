@@ -10,7 +10,9 @@ class VersionParser(object):
     _constraints = {}
 
     def parse_constraints(self, constraints):
-        if not isinstance(constraints, list):
+        if isinstance(constraints, Spec):
+            constraints = str(constraints)
+        elif not isinstance(constraints, list):
             constraints = constraints.replace(', ', ',')
         else:
             constraints = ','.join(constraints)

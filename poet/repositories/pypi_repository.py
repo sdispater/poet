@@ -25,17 +25,33 @@ class PyPiRepository(object):
         self._url = url
 
     def find_packages(self, name, constraint=None):
+        """
+        Find packages on the remote server.
+        
+        :param name: The name of the package.
+        :type name: str
+        
+        :param constraint: An optional constraint
+        :type constraint: str or semantic_version.Spec
+        
+        :rtype: List[poet.package.package.Package] 
+        """
         packages = []
 
         if constraint is not None:
             version_parser = VersionParser()
             constraint = version_parser.parse_constraints(constraint)
 
-        with ServerProxy(self._url) as client:
-            versions = client.package_releases(name, True)
+        client = ServerProxy(self._url)
 
         if constraint:
-            versions = constraint.select([Version.coerce(v) for v in versions])
+            versions = []
+
+            for version in client.package_releases(name, True):
+                if Version.coerce(version) in constraint:
+                    versions.append(version)
+        else:
+            versions = client.package_releases(name, True)
 
         for version in versions:
             try:
