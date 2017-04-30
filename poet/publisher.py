@@ -112,9 +112,9 @@ class Publisher(object):
             with open(config_file) as f:
                 config = toml.loads(f.read())
 
-            for repo in config['repository']:
-                if repo['name'] == repository_name:
-                    self._repository_config = repo
+            for name, config in config['repositories'].items():
+                if name == repository_name:
+                    self._repository_config = config
                     break
         else:
             self._repository_config = {
