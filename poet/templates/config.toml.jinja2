@@ -1,0 +1,16 @@
+{% if repositories %}
+{% for repository in repositories %}
+[[repository]]
+name = "{{ repository['name'] }}"
+url = "{{ repository['url'] }}"
+{% if 'username' in repository and repository['username'] %}
+username = "{{ repository['username'] }}"
+{% endif %}
+{% if 'password' in repository %}
+password = "{{ repository['password'] and repository['password'] }}"
+{% endif %}
+{% if not loop.last %}
+
+{% endif %}
+{% endfor %}
+{% endif %}

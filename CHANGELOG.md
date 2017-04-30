@@ -1,5 +1,17 @@
 # Change Log
 
+
+## [Unreleased]
+
+### Added
+
+- `poet` now uses its own configuration file (used only to store remote repositories for now).
+
+### Changed
+
+- Improved the `publish` command.
+
+
 ## [0.4.1] - 2017-04-26
 
 ### Fixed

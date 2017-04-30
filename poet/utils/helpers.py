@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import os
+import errno
 import subprocess
 
 from jinja2 import Environment, PackageLoader
@@ -52,3 +54,13 @@ def template(name):
         name += '.jinja2'
 
     return TEMPLATE_ENV.get_template(name)
+
+
+def mkdir_p(path, mode=0o777):
+    try:
+        os.makedirs(path, mode)
+    except OSError as exc:
+        if exc.errno == errno.EEXIST and os.path.isdir(path):
+            pass
+        else:
+            raise

@@ -2,6 +2,7 @@
 
 import os
 import twine.utils
+import toml
 
 from twine.commands.upload import find_dists, skip_upload
 from twine.repository import Repository as BaseRepository
@@ -10,6 +11,9 @@ from twine.package import PackageFile
 from requests_toolbelt.multipart import (
     MultipartEncoder, MultipartEncoderMonitor
 )
+
+from .locations import CONFIG_DIR
+from .utils.helpers import template, mkdir_p
 
 
 class Repository(BaseRepository):
@@ -67,6 +71,8 @@ class Repository(BaseRepository):
                 encoder, lambda monitor: bar.set_progress(monitor.bytes_read / encoder.len)
             )
 
+            bar.start()
+
             resp = self.session.post(
                 self.url,
                 data=monitor,
@@ -89,27 +95,58 @@ class Publisher(object):
     Registers and publishes packages to remote repositories.
     """
 
-    def __init__(self, output, repository,
-                 username=None, password=None, config_file='~/.pypirc',
+    def __init__(self, output, repository_name=None,
+                 username=None, password=None,
                  cert=None, client_cert=None, repository_url=None):
         self._output = output
+        self._repository_config = None
 
-        config = twine.utils.get_repository_from_config(
-            config_file,
-            repository,
-            repository_url
-        )
-        config["repository"] = twine.utils.normalize_repository_url(
-            config["repository"]
+        if not repository_name and not repository_url:
+            raise Exception('Either a repository name or a repository url should be provided.')
+
+        if not repository_url:
+            config_file = os.path.join(CONFIG_DIR, 'config.toml')
+            if not os.path.exists(config_file):
+                self._create_config_file()
+
+            with open(config_file) as f:
+                config = toml.loads(f.read())
+
+            for repo in config['repository']:
+                if repo['name'] == repository_name:
+                    self._repository_config = repo
+                    break
+        else:
+            self._repository_config = {
+                'url': repository_url
+            }
+
+        if not self._repository_config:
+            raise Exception('Repository [{}] does not exist.'.format(repository_name))
+
+        self._repository_config['url'] = twine.utils.normalize_repository_url(
+            self._repository_config['url']
         )
 
-        username = twine.utils.get_username(username, config)
-        password = twine.utils.get_password(password, config)
-        ca_cert = twine.utils.get_cacert(cert, config)
-        client_cert = twine.utils.get_clientcert(client_cert, config)
+        username = self._repository_config.get('username')
+        if not username:
+            self._output.writeln('')
+            username = self._output.ask('Enter your username:')
+
+        password = self._repository_config.get('password')
+        if not password:
+            self._output.writeln('')
+            password = self._output.ask_hidden('Enter your password:')
+
+        ca_cert = cert
+        if not ca_cert:
+            ca_cert = self._repository_config.get('ca_cert')
+
+        if not client_cert:
+            client_cert = self._repository_config.get('client_cert')
 
         self._repository = Repository(
-            output, config["repository"], username, password
+            output, self._repository_config['url'], username, password
         )
         self._repository.set_certificate_authority(ca_cert)
         self._repository.set_client_certificate(client_cert)
@@ -196,3 +233,39 @@ class Publisher(object):
         # Bug 28. Try to silence a ResourceWarning by clearing the connection
         # pool.
         self._repository.close()
+
+    def _create_config_file(self):
+        config_file = os.path.join(CONFIG_DIR, 'config.toml')
+
+        mkdir_p(CONFIG_DIR)
+
+        # Try to load default ~/.pypirc file to transfer
+        path = os.path.expanduser('~/.pypirc')
+        if not os.path.exists(path):
+            config = self._get_default_config()
+        else:
+            pypirc_config = twine.utils.get_config()
+
+            repositories = []
+            for repository, settings in pypirc_config.items():
+                repositories.append({
+                    'name': repository,
+                    'url': settings.get('repository', 'https://pypi.python.org/pypi'),
+                    'username': settings.get('username'),
+                    'password': settings.get('password'),
+                })
+
+            config = {
+                'repositories': repositories
+            }
+
+        with open(config_file, 'w') as f:
+            f.write(template('config.toml').render(**config))
+
+    def _get_default_config(self):
+        return {
+            'repositories': [
+                {'name': 'pypi', 'url': 'https://pypi.python.org/pypi'}
+            ]
+        }
+

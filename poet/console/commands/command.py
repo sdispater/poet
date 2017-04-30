@@ -12,6 +12,8 @@ from semantic_version import Version
 from ...poet import Poet
 from ...utils.helpers import call
 
+from ..styles.poet_style import PoetStyle
+
 
 class Command(BaseCommand):
     
@@ -49,6 +51,18 @@ class Command(BaseCommand):
 
     def has_lock(self):
         return os.path.exists(self.lock_file)
+
+    def run(self, i, o):
+        """
+        Initialize command.
+
+        :type i: cleo.inputs.input.Input
+        :type o: cleo.outputs.output.Output
+        """
+        self.input = i
+        self.output = PoetStyle(i, o)
+
+        return super(BaseCommand, self).run(i, o)
 
     def execute(self, i, o):
         """

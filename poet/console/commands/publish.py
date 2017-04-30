@@ -16,7 +16,8 @@ class PublishCommand(Command):
     Publish the package to the remote repository.
 
     publish
-        {--r|repository=pypi : The repository to register the package to}
+        { --r|repository=pypi : The repository to register the package to }
+        { --url= : The url of the repository to register the package to }
     """
 
     def handle(self):
@@ -38,7 +39,8 @@ class PublishCommand(Command):
 
         publisher = Publisher(
             self.output,
-            self.option('repository')
+            self.option('repository'),
+            repository_url=self.option('url')
         )
 
         self.line('')
