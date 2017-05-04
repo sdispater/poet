@@ -12,9 +12,6 @@ from requests_toolbelt.multipart import (
     MultipartEncoder, MultipartEncoderMonitor
 )
 
-from .locations import CONFIG_DIR
-from .utils.helpers import template, mkdir_p
-
 
 class Repository(BaseRepository):
 
@@ -41,6 +38,7 @@ class Repository(BaseRepository):
             data=encoder,
             allow_redirects=False,
             headers={'Content-Type': encoder.content_type},
+            timeout=5
         )
         # Bug 28. Try to silence a ResourceWarning by releasing the socket.
         resp.close()
@@ -68,7 +66,7 @@ class Repository(BaseRepository):
                 " - Uploading <info>{0}</> <comment>%percent%%</>".format(package.basefilename)
             )
             monitor = MultipartEncoderMonitor(
-                encoder, lambda monitor: bar.set_progress(monitor.bytes_read / encoder.len)
+                encoder, lambda monitor: bar.set_progress(round(monitor.bytes_read / encoder.len))
             )
 
             bar.start()
@@ -78,6 +76,7 @@ class Repository(BaseRepository):
                 data=monitor,
                 allow_redirects=False,
                 headers={'Content-Type': monitor.content_type},
+                timeout=5
             )
 
             if resp.ok:
@@ -95,7 +94,7 @@ class Publisher(object):
     Registers and publishes packages to remote repositories.
     """
 
-    def __init__(self, output, repository_name=None,
+    def __init__(self, output, config, repository_name=None,
                  username=None, password=None,
                  cert=None, client_cert=None, repository_url=None):
         self._output = output
@@ -105,14 +104,7 @@ class Publisher(object):
             raise Exception('Either a repository name or a repository url should be provided.')
 
         if not repository_url:
-            config_file = os.path.join(CONFIG_DIR, 'config.toml')
-            if not os.path.exists(config_file):
-                self._create_config_file()
-
-            with open(config_file) as f:
-                config = toml.loads(f.read())
-
-            for name, config in config['repositories'].items():
+            for name, config in config.get('repositories').items():
                 if name == repository_name:
                     self._repository_config = config
                     break
@@ -233,39 +225,4 @@ class Publisher(object):
         # Bug 28. Try to silence a ResourceWarning by clearing the connection
         # pool.
         self._repository.close()
-
-    def _create_config_file(self):
-        config_file = os.path.join(CONFIG_DIR, 'config.toml')
-
-        mkdir_p(CONFIG_DIR)
-
-        # Try to load default ~/.pypirc file to transfer
-        path = os.path.expanduser('~/.pypirc')
-        if not os.path.exists(path):
-            config = self._get_default_config()
-        else:
-            pypirc_config = twine.utils.get_config()
-
-            repositories = []
-            for repository, settings in pypirc_config.items():
-                repositories.append({
-                    'name': repository,
-                    'url': settings.get('repository', 'https://pypi.python.org/pypi'),
-                    'username': settings.get('username'),
-                    'password': settings.get('password'),
-                })
-
-            config = {
-                'repositories': repositories
-            }
-
-        with open(config_file, 'w') as f:
-            f.write(template('config.toml').render(**config))
-
-    def _get_default_config(self):
-        return {
-            'repositories': [
-                {'name': 'pypi', 'url': 'https://pypi.python.org/pypi'}
-            ]
-        }
 

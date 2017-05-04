@@ -75,4 +75,3 @@ class VersionSelector(object):
             return pretty_version
 
         return '^{}.{}'.format(version.major, version.minor)
-

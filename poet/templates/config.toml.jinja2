@@ -1,7 +1,6 @@
 {% if repositories %}
 {% for repository in repositories %}
-[[repository]]
-name = "{{ repository['name'] }}"
+[[repositories.{{ repository['name'] }}]]
 url = "{{ repository['url'] }}"
 {% if 'username' in repository and repository['username'] %}
 username = "{{ repository['username'] }}"

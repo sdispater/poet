@@ -10,10 +10,10 @@ from cleo import Command as BaseCommand
 from semantic_version import Version
 
 from ...poet import Poet
+from ...config import Config
 from ...utils.helpers import call
 
 from ..styles.poet_style import PoetStyle
-
 
 class Command(BaseCommand):
     
@@ -48,6 +48,10 @@ class Command(BaseCommand):
     @property
     def virtual_env(self):
         return self._virtual_env
+
+    @property
+    def config(self):
+        return Config(self.poet)
 
     def has_lock(self):
         return os.path.exists(self.lock_file)

@@ -2,6 +2,7 @@
 
 from .about import AboutCommand
 from .check import CheckCommand
+from .config import ConfigCommand
 from .init import InitCommand
 from .install import InstallCommand
 from .lock import LockCommand

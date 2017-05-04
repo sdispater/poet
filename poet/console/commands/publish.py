@@ -39,6 +39,7 @@ class PublishCommand(Command):
 
         publisher = Publisher(
             self.output,
+            self.config,
             self.option('repository'),
             repository_url=self.option('url')
         )

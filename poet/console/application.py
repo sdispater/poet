@@ -5,6 +5,7 @@ from cleo import Application as BaseApplication
 from .commands import (
     AboutCommand,
     CheckCommand,
+    ConfigCommand,
     InitCommand,
     InstallCommand,
     LockCommand,
@@ -28,6 +29,7 @@ class Application(BaseApplication):
         return default_commands + [
             AboutCommand(),
             CheckCommand(),
+            ConfigCommand(),
             InitCommand(),
             InstallCommand(),
             LockCommand(),
@@ -39,7 +41,3 @@ class Application(BaseApplication):
             SearchCommand(),
             UpdateCommand()
         ]
-
-
-if __name__ == '__main__':
-    Application().run()
