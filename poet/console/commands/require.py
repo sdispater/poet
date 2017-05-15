@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 
+from pygments import highlight
+from pygments.formatters.terminal import TerminalFormatter
+
 from ...version_selector import VersionSelector
+from ...utils.lexers import TOMLLexer
 
 from .index_command import IndexCommand
 
@@ -95,7 +99,14 @@ class RequireCommand(IndexCommand):
 
             self.line('<comment>Add the following lines to the <info>{}</> section</>\n'.format(section))
             for require in requires:
-                self.line('{} = "{}"'.format(*require.split(' ')))
+                line = highlight(
+                    '{} = "{}"'.format(*require.split(' ')),
+                    TOMLLexer(),
+                    TerminalFormatter()
+                )
+                self.write(line)
+
+            self.line('')
 
     def _find_best_version_for_package(self, package):
         selector = VersionSelector(self._repository)
