@@ -3,8 +3,10 @@
 import tempfile
 
 import os
+import re
 import shutil
 import subprocess
+import logging
 
 from packaging.utils import canonicalize_name
 from pip.download import unpack_url
@@ -18,6 +20,10 @@ from piptools.utils import is_pinned_requirement, key_from_req
 from .locations import CACHE_DIR
 from .package.pip_dependency import PipDependency
 from .utils.helpers import call, template
+
+# Silencing pip loggers
+pip_git_logger = logging.getLogger('pip.vcs.git')
+pip_git_logger.setLevel(logging.ERROR)
 
 
 class Installer(object):
@@ -82,12 +88,57 @@ class Installer(object):
                 for package in packages:
                     featured_packages.add(canonicalize_name(package))
 
+        # Getting already installed packages
+        installed = {}
+        freezed = self._call([self._command.pip(), 'freeze'])
+        for req_line in freezed.split(os.linesep):
+            if not req_line.startswith('-e '):
+                if '==' not in req_line:
+                    continue
+
+                name, version = req_line.split('==')
+            else:
+                # Finding revision
+                m = re.match('@(?P<revision>.+)#egg=(?P<name>.+)$', req_line)
+                if not m:
+                    # Malformed string?
+                    # We do not consider it installed to make a clean install
+                    continue
+
+                name = m.group('name')
+                version = m.group('revision')
+
+            installed[canonicalize_name(name)] = version
+
+        skipped = 0
+        total = len(deps)
         for dep in deps:
             name = dep.name
 
             # Package is optional but is not featured
             if dep.optional and name not in featured_packages:
+                skipped += 1
+
                 continue
+
+            # Checking if the package is already installed
+            if name in installed:
+                if not dep.is_vcs_dependency():
+                    version = dep.constraint.replace('==', '')
+                else:
+                    version = dep.pretty_constraint.split(' ')[-1]
+
+                if version == installed[name]:
+                    if self._command.output.is_verbose():
+                        self._command.line(
+                            ' - Skipping <info>{}</> '
+                            '(Version <comment>{}</> is already installed)'
+                                .format(name, version)
+                        )
+
+                    skipped += 1
+
+                    continue
 
             # Checking Python version
             if dep.is_python_restricted():
@@ -102,6 +153,9 @@ class Installer(object):
                             '(Specifies Python <comment>{}</> and current Python is <comment>{}</>)'
                             .format(name, ','.join([str(p) for p in dep.python]), python_version)
                         )
+
+                    skipped += 1
+
                     continue
 
 
@@ -126,6 +180,9 @@ class Installer(object):
             error_message = 'Error while installing [{}]'.format(name)
 
             self._progress(cmd, message[3:], end_message, message, error_message)
+
+        if skipped == total:
+            self._command.line('<info>All dependencies already installed</>')
 
     def update(self, packages=None, features=None, dev=True):
         if self._poet.is_lock():
@@ -174,7 +231,7 @@ class Installer(object):
         actions = self._resolve_update_actions(deps, current_deps, delete=delete)
 
         if not actions:
-            self._command.line(' - <info>Dependencies already up-to-date!</info>')
+            self._command.line('<info>Dependencies already up-to-date!</info>')
 
             return
 
@@ -182,22 +239,16 @@ class Installer(object):
         updates = len([a for a in actions if a[0] == 'update'])
         uninstalls = len([a for a in actions if a[0] == 'remove'])
 
-        summary = []
-        if updates:
-            summary.append('<comment>{}</> updates'.format(updates))
-
-        if installs:
-            summary.append('<comment>{}</> installations'.format(installs))
-
-        if uninstalls:
-            summary.append('<comment>{}</> uninstallations'.format(uninstalls))
-
-        if len(summary) > 1:
-            summary = ', '.join(summary)
-        else:
-            summary = summary[0]
-
-        self._command.line(' - Summary: {}'.format(summary))
+        self._command.line(
+            '<info>Package operations: '
+            '<comment>{}</> install{}, <comment>{}</> update{} and <comment>{}</> uninstall{}'
+            '</info>'
+            .format(
+                installs, 's' if installs != 1 else '',
+                updates, 's' if updates != 1 else '',
+                uninstalls, 's' if uninstalls != 1 else '',
+            )
+        )
 
         error = False
         for action, from_, dep in actions:
@@ -269,15 +320,19 @@ class Installer(object):
 
     def resolve(self, deps):
         if not self._with_progress:
-            self._command.line(' - <info>Resolving dependencies</>')
+            self._command.line('<info>Resolving dependencies</info>')
 
             return self._resolve(deps)
 
         with self._spin(
-            '<info>Resolving dependencies</>',
-            '<info>Resolving dependencies</>'
+            '<info>Resolving dependencies</info>',
+            '<info>Resolving dependencies</info>',
+            fmt='%message%%indicator%',
+            values=('   ', '.  ', '.. ', '...', ' ..', '  .'),
+            interval=100
         ):
             return self._resolve(deps)
+
 
     def _resolve(self, deps):
         # Checking if we should active prereleases
@@ -326,8 +381,9 @@ class Installer(object):
 
             version = str(m.req.specifier)
             if m in unpinned:
-                url, specifier = m.link.url.split('@')
-                rev, _ = specifier.split('#')
+                m = re.match('(?P<url>.+)@(?P<revision>.+?)#egg=(?P<name>.+)$', m.link.url)
+                url = m.group('url')
+                rev = m.group('revision')
 
                 version = self._get_vcs_version(url, rev)
                 checksum = 'sha1:{}'.format(version['rev'])
@@ -503,7 +559,7 @@ class Installer(object):
         return version
 
     def _write_lock(self, packages, features):
-        self._command.line(' - <info>Writing dependencies</>')
+        self._command.line('<info>Writing dependencies</>')
 
         content = self._generate_lock_content(packages, features)
 
@@ -550,11 +606,14 @@ class Installer(object):
 
         return pythons
 
-    def _call(self, cmd, error_message):
+    def _call(self, cmd, error_message=None):
         try:
             return call(cmd)
         except subprocess.CalledProcessError as e:
-            raise Exception(error_message + ' ({})'.format(str(e)))
+            if error_message:
+                raise Exception(error_message + ' ({})'.format(str(e)))
+
+            raise
 
     def _progress(self, cmd, start_message, end_message, default_message, error_message):
         if not self._with_progress:
@@ -565,5 +624,12 @@ class Installer(object):
         with self._spin(start_message, end_message):
             return self._call(cmd, error_message)
 
-    def _spin(self, start_message, end_message):
-        return self._command.spin(start_message, end_message)
+    def _spin(self, start_message, end_message, fmt=None, values=None, interval=100):
+        indicator = self._command.progress_indicator(indicator_values=values, indicator_change_interval=interval)
+        if fmt is not None:
+            if fmt in indicator.formats:
+                fmt = indicator.formats[fmt]
+
+            indicator.format = fmt
+
+        return indicator.auto(start_message, end_message)

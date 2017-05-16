@@ -29,8 +29,8 @@ def test_command(app, mocker, tmp_dir):
     tester.execute([('command', command.name)])
 
     expected = """
- - Resolving dependencies
- - Created requirements.txt file
+Resolving dependencies
+Created requirements.txt file
 """
 
     output = tester.get_display()

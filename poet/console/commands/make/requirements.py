@@ -38,4 +38,4 @@ class MakeRequirementsCommand(IndexCommand):
 
                 f.write(version + '\n')
 
-        self.line(' - Created <info>requirements.txt</> file')
+        self.line('Created <info>requirements.txt</> file')

@@ -23,8 +23,8 @@ def test_lock(app, mocker):
     expected = """
 Locking dependencies to poetry.lock
 
- - Resolving dependencies
- - Writing dependencies
+Resolving dependencies
+Writing dependencies
 """
 
     assert expected == output

@@ -65,8 +65,8 @@ def test_update_only_update(mocker):
     expected = """
 Updating dependencies
 
- - Resolving dependencies
- - Summary: 2 updates
+Resolving dependencies
+Package operations: 0 installs, 2 updates and 0 uninstalls
  - Updating pendulum (1.2.0 -> 1.3.0)
  - Updating pytest (3.0.7 -> 3.5.0)
 """
@@ -111,8 +111,8 @@ def test_update_specific_packages(mocker):
     expected = """
 Updating dependencies
 
- - Resolving dependencies
- - Summary: 1 updates
+Resolving dependencies
+Package operations: 0 installs, 1 update and 0 uninstalls
  - Updating pendulum (1.2.0 -> 1.3.0)
 """
 
@@ -162,8 +162,8 @@ def test_update_with_new_packages(mocker):
     expected = """
 Updating dependencies
 
- - Resolving dependencies
- - Summary: 2 updates, 1 installations
+Resolving dependencies
+Package operations: 1 install, 2 updates and 0 uninstalls
  - Updating pendulum (1.2.0 -> 1.3.0)
  - Updating pytest (3.0.7 -> 3.5.0)
  - Installing requests (2.13.0)
@@ -209,8 +209,8 @@ def test_update_with_no_updates(mocker):
     expected = """
 Updating dependencies
 
- - Resolving dependencies
- - Dependencies already up-to-date!
+Resolving dependencies
+Dependencies already up-to-date!
 """
 
     assert output == expected

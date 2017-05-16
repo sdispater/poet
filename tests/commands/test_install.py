@@ -60,14 +60,12 @@ def test_install_default(mocker, check_output):
     assert os.path.exists(DUMMY_LOCK)
     os.remove(DUMMY_LOCK)
 
-    check_output.assert_called_once()
-
     output = command_tester.get_display()
     expected = """
 Locking dependencies to poetry.lock
 
- - Resolving dependencies
- - Writing dependencies
+Resolving dependencies
+Writing dependencies
 
 Installing dependencies
 
@@ -90,3 +88,28 @@ def test_install_invalid_feature(app):
             ('--features', ['invalid']),
             ('--no-progress', True)
         ])
+
+def test_install_already_installed_normal(app, check_output, mocker):
+    resolve = mocker.patch('piptools.resolver.Resolver.resolve')
+    reverse_dependencies = mocker.patch('piptools.resolver.Resolver.reverse_dependencies')
+    resolve.return_value = [
+        InstallRequirement.from_line('requests==2.13.0'),
+        InstallRequirement.from_editable('git+https://github.com/sdispater/cleo.git@d54cb993b2342e95ae4fce817af8a841c43514ef#egg=cleo'),
+    ]
+    reverse_dependencies.return_value = {}
+
+    app = Application()
+    app.add(InstallCommand())
+
+    command = app.find('install')
+    command_tester = CommandTester(command)
+    output = command_tester.execute([
+        ('command', command.name),
+        ('--no-progress', True)
+    ])
+
+    expected = """
+Installing dependencies
+    
+All dependencies already installed    
+"""

@@ -40,7 +40,10 @@ def command():
 @pytest.fixture
 def check_output(mocker):
     outputs = {
-        ('python', '-V'): b'Python 3.6.0'
+        ('python', '-V'): b'Python 3.6.0',
+        ('pip', 'freeze'): """requests==2.13.0
+-e -e git+git@github.com:sdispater/cleo.git@d54cb993b2342e95ae4fce817af8a841c43514ef#egg=cleo'
+"""
     }
     patched = mocker.patch(
         'subprocess.check_output',
@@ -64,6 +67,6 @@ def tmp_file():
     fd, file_ = tempfile.mkstemp(prefix='poet_')
     os.close(fd)
 
-    yield dir_
+    yield file_
 
     os.unlink(file_)
