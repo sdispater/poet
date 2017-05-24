@@ -37,8 +37,7 @@ class Repository(BaseRepository):
             self.url,
             data=encoder,
             allow_redirects=False,
-            headers={'Content-Type': encoder.content_type},
-            timeout=5
+            headers={'Content-Type': encoder.content_type}
         )
         # Bug 28. Try to silence a ResourceWarning by releasing the socket.
         resp.close()
@@ -75,8 +74,7 @@ class Repository(BaseRepository):
                 self.url,
                 data=monitor,
                 allow_redirects=False,
-                headers={'Content-Type': monitor.content_type},
-                timeout=5
+                headers={'Content-Type': monitor.content_type}
             )
 
             if resp.ok:
