@@ -178,3 +178,10 @@ class Dependency(object):
 
     def __repr__(self):
         return '<{} {}>'.format(self.__class__.__name__, self.normalized_name)
+
+    def __eq__(self, other):
+        return (
+            self._name == other.name,
+            self.normalized_constraint == other.normalized_constraint,
+            self._category == other.category
+        )
