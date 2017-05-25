@@ -12,6 +12,7 @@ class UpdateCommand(IndexCommand):
     update
         { packages?* : The packages to update }
         { --f|features=* : Features to install }
+        { --dry-run : Outputs the operations but will not execute anything }
         { --no-progress : Do not output download progress. }
     """
 
@@ -30,7 +31,8 @@ class UpdateCommand(IndexCommand):
 
         installer = Installer(
             self, self._repository,
-            with_progress=not self.option('no-progress')
+            with_progress=not self.option('no-progress'),
+            dry_run=self.option('dry-run')
         )
 
         installer.update(packages=self.argument('packages'), features=features)

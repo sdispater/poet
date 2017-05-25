@@ -30,11 +30,12 @@ class Installer(object):
 
     UNSAFE = ['setuptools']
 
-    def __init__(self, command, repository, with_progress=False):
+    def __init__(self, command, repository, with_progress=False, dry_run=False):
         self._command = command
         self._poet = command.poet
         self._repository = repository
         self._with_progress = with_progress
+        self._dry_run = dry_run
 
     def install(self, features=None, dev=True):
         """
@@ -192,7 +193,10 @@ class Installer(object):
             raise Exception('Cannot specify packages and features when updating.')
 
         self._command.line('')
-        self._command.line('<info>Updating dependencies</>')
+        self._command.line(
+            '<info>Updating dependencies</>{}'
+            .format('' if not self._dry_run else ' (<comment>Dry run</>)')
+        )
         self._command.line('')
 
         # Reading current lock
@@ -221,11 +225,14 @@ class Installer(object):
         ]
 
         if packages:
-            packages = [p for p in self.resolve(deps) if p['name'] in packages]
+            packages = [canonicalize_name(name) for name in packages]
+            to_resolve_deps = [dep for dep in deps if dep.name in packages]
+
+            packages = self.resolve_and_compare(to_resolve_deps, deps)
         else:
             packages = self.resolve(deps)
 
-        deps = [PipDependency(p['name'], p['version']) for p in packages]
+        deps = [PipDependency(p['name'], p['version'], p['category']) for p in packages]
 
         delete = not packages and not features
         actions = self._resolve_update_actions(deps, current_deps, delete=delete)
@@ -250,52 +257,18 @@ class Installer(object):
             )
         )
 
-        error = False
-        for action, from_, dep in actions:
-            cmd = [self._command.pip()]
-            description = 'Installing'
+        self._perform_update_actions(actions)
 
-            if action == 'remove':
-                description = 'Removing'
-                cmd += ['uninstall', dep.normalized_name, '-y']
-            elif action == 'update':
-                description = 'Updating'
-                cmd += ['install', dep.normalized_name, '-U']
-            else:
-                cmd += ['install', dep.normalized_name]
+        if self._dry_run:
+            return
 
-            name = dep.name
+        # If everything went well, we write down the lock file
+        features = {}
+        for name, featured_packages in self._poet.features.items():
+            name = canonicalize_name(name)
+            features[name] = [canonicalize_name(p) for p in featured_packages]
 
-            if dep.is_vcs_dependency():
-                constraint = dep.pretty_constraint
-            else:
-                constraint = dep.constraint.replace('==', '')
-
-            version = '<comment>{}</>'.format(constraint)
-
-            if from_:
-                if from_.is_vcs_dependency():
-                    constraint = from_.pretty_constraint
-                else:
-                    constraint = from_.constraint.replace('==', '')
-
-                version = '<comment>{}</> -> '.format(constraint) + version
-
-            message = ' - {} <info>{}</> ({})'.format(description, name, version)
-            start_message = message[3:]
-            end_message = '{} <info>{}</> ({})'.format(description.replace('ing', 'ed'), name, version)
-            error_message = 'Error while {} [{}]'.format(description.lower(), name)
-
-            self._progress(cmd, start_message, end_message, message, error_message)
-
-        if not error:
-            # If everything went well, we write down the lock file
-            features = {}
-            for name, featured_packages in self._poet.features.items():
-                name = canonicalize_name(name)
-                features[name] = [canonicalize_name(p) for p in featured_packages]
-
-            self._write_lock(packages, features)
+        self._write_lock(packages, features)
 
     def lock(self, dev=True):
         if self._poet.is_lock():
@@ -333,6 +306,54 @@ class Installer(object):
         ):
             return self._resolve(deps)
 
+    def resolve_and_compare(self, deps, all_deps):
+        if not self._with_progress:
+            self._command.line('<info>Resolving dependencies</info>')
+
+            return self._resolve_and_compare(deps, all_deps)
+
+        with self._spin(
+            '<info>Resolving dependencies</info>',
+            '<info>Resolving dependencies</info>',
+            fmt='%message%%indicator%',
+            values=('   ', '.  ', '.. ', '...', ' ..', '  .'),
+            interval=100
+        ):
+            return self._resolve_and_compare(deps, all_deps)
+
+    def _resolve_and_compare(self, deps, all_deps):
+        # Resolving for specific packages
+        new_packages = self._resolve(deps)
+
+        # Resolving all
+        all_packages = self._resolve(all_deps)
+
+        # Checking compatibility
+        packages = []
+        for pkg in all_packages:
+            package = pkg
+            for new_pkg in new_packages:
+                if pkg['name'] == new_pkg['name']:
+                    # If the versions of the package are different
+                    # we have an incompatibility
+                    if pkg['version'] != pkg['version']:
+                        raise Exception(
+                            'Incompatibility detected for package [{}] '
+                            '(Version {} incompatible with version {})'
+                                .format(
+                                pkg['name'],
+                                pkg['version'],
+                                new_pkg['version']
+                            )
+                        )
+
+                    package = pkg
+
+                    break
+
+            packages.append(package)
+
+        return packages
 
     def _resolve(self, deps):
         # Checking if we should active prereleases
@@ -389,7 +410,7 @@ class Installer(object):
                 checksum = 'sha1:{}'.format(version['rev'])
             else:
                 version = version.replace('==', '')
-                checksum = list(hashes[m])
+                checksum = list(sorted(hashes[m]))
 
             # Figuring out category and optionality
             category = None
@@ -531,6 +552,49 @@ class Installer(object):
                 actions.append(('remove', None, dep))
 
         return actions
+
+    def _perform_update_actions(self, actions):
+        for action, from_, dep in actions:
+            cmd = [self._command.pip()]
+            description = 'Installing'
+
+            if action == 'remove':
+                description = 'Removing'
+                cmd += ['uninstall', dep.normalized_name, '-y']
+            elif action == 'update':
+                description = 'Updating'
+                cmd += ['install', dep.normalized_name, '-U']
+            else:
+                cmd += ['install', dep.normalized_name]
+
+            name = dep.name
+
+            if dep.is_vcs_dependency():
+                constraint = dep.pretty_constraint
+            else:
+                constraint = dep.constraint.replace('==', '')
+
+            version = '<comment>{}</>'.format(constraint)
+
+            if from_:
+                if from_.is_vcs_dependency():
+                    constraint = from_.pretty_constraint
+                else:
+                    constraint = from_.constraint.replace('==', '')
+
+                version = '<comment>{}</> -> '.format(constraint) + version
+
+            message = ' - {} <info>{}</> ({})'.format(description, name, version)
+            start_message = message[3:]
+            end_message = '{} <info>{}</> ({})'.format(description.replace('ing', 'ed'), name, version)
+            error_message = 'Error while {} [{}]'.format(description.lower(), name)
+
+            if self._dry_run:
+                self._command.line(message)
+
+                continue
+
+            self._progress(cmd, start_message, end_message, message, error_message)
 
     def _get_vcs_version(self, url, rev):
         tmp_dir = tempfile.mkdtemp()

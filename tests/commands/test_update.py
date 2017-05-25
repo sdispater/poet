@@ -76,27 +76,34 @@ Package operations: 0 installs, 2 updates and 0 uninstalls
 
 def test_update_specific_packages(mocker):
     sub = mocker.patch('subprocess.check_output')
-    resolve = mocker.patch('piptools.resolver.Resolver.resolve')
-    get_hashes = mocker.patch('piptools.resolver.Resolver.resolve_hashes')
-    reverse_dependencies = mocker.patch('piptools.resolver.Resolver.reverse_dependencies')
-    reverse_dependencies.return_value = {}
+    resolve = mocker.patch('poet.installer.Installer._resolve')
     write_lock = mocker.patch('poet.installer.Installer._write_lock')
-    pendulum_req = InstallRequirement.from_line('pendulum==1.3.0')
-    pytest_req = InstallRequirement.from_line('pytest==3.5.0')
-    resolve.return_value = [
-        pendulum_req,
-        pytest_req
+    resolve.side_effect = [
+        [{
+            'name': 'pendulum',
+            'version': '1.3.0',
+            'checksum': [],
+            'category': 'main',
+            'optional': False,
+            'python': ['*']
+        }],
+        [{
+            'name': 'pendulum',
+            'version': '1.3.0',
+            'checksum': [],
+            'category': 'main',
+            'optional': False,
+            'python': ['*']
+        }, {
+            'name': 'pytest',
+            'version': '3.0.7',
+            'checksum': [],
+            'category': 'dev',
+            'optional': False,
+            'python': ['*']
+        }]
     ]
-    get_hashes.return_value = {
-        pendulum_req: set([
-            "sha256:a97e3ed9557ac0c5c3742f21fa4d852d7a050dd9b1b517e993aebef2dd2eea52",
-            "sha256:641140a05f959b37a177866e263f6f53a53b711fae6355336ee832ec1a59da8a"
-        ]),
-        pytest_req: set([
-            "sha256:66f332ae62593b874a648b10a8cb106bfdacd2c6288ed7dec3713c3a808a6017",
-            "sha256:b70696ebd1a5e6b627e7e3ac1365a4bc60aaf3495e843c1e70448966c5224cab"
-        ])
-    }
+
     app = Application()
     app.add(UpdateCommand())
 
@@ -128,11 +135,11 @@ def test_update_with_new_packages(mocker):
     write_lock = mocker.patch('poet.installer.Installer._write_lock')
     pendulum_req = InstallRequirement.from_line('pendulum==1.3.0')
     pytest_req = InstallRequirement.from_line('pytest==3.5.0')
-    requests_req = InstallRequirement.from_line('requests==2.13.0')
+    new_req = InstallRequirement.from_line('new==2.13.0')
     resolve.return_value = [
         pendulum_req,
         pytest_req,
-        requests_req
+        new_req
     ]
     get_hashes.return_value = {
         pendulum_req: set([
@@ -143,7 +150,7 @@ def test_update_with_new_packages(mocker):
             "sha256:66f332ae62593b874a648b10a8cb106bfdacd2c6288ed7dec3713c3a808a6017",
             "sha256:b70696ebd1a5e6b627e7e3ac1365a4bc60aaf3495e843c1e70448966c5224cab"
         ]),
-        requests_req: set([
+        new_req: set([
             "sha256:5722cd09762faa01276230270ff16af7acf7c5c45d623868d9ba116f15791ce8",
             "sha256:1a720e8862a41aa22e339373b526f508ef0c8988baf48b84d3fc891a8e237efb"
         ])
@@ -164,9 +171,9 @@ Updating dependencies
 
 Resolving dependencies
 Package operations: 1 install, 2 updates and 0 uninstalls
+ - Installing new (2.13.0)
  - Updating pendulum (1.2.0 -> 1.3.0)
  - Updating pytest (3.0.7 -> 3.5.0)
- - Installing requests (2.13.0)
 """
 
     assert output == expected

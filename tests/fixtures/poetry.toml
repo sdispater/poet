@@ -23,6 +23,8 @@ python = ["~2.7", "^3.5"]
 
 [dependencies]
 pendulum = "^1.2.0"
+orator = "^0.9"
+requests = "^2.13"
 
 [dev-dependencies]
 pytest = "^3.0"

@@ -5,6 +5,7 @@ import pytest
 import tempfile
 import shutil
 
+from io import BytesIO
 from cleo.inputs.list_input import ListInput
 from cleo.outputs.console_output import ConsoleOutput
 from cleo.styles import CleoStyle
@@ -25,6 +26,13 @@ class DummyCommand(Command):
 
         self.input = ListInput([])
         self.output = CleoStyle(self.input, ConsoleOutput())
+
+    @property
+    def poet_file(self):
+        return os.path.join(os.path.dirname(__file__), 'fixtures', 'poetry.toml')
+
+    def line(self, text, *args, **kwargs):
+        pass
 
 
 @pytest.fixture

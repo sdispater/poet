@@ -1,15 +1,55 @@
-
+[root]
+name = "pypoet"
+version = "0.1.2"
 
 [[package]]
 name = "pendulum"
 version = "1.2.0"
-checksum = [ "sha256:a97e3ed9557ac0c5c3742f21fa4d852d7a050dd9b1b517e993aebef2dd2eea52", "sha256:641140a05f959b37a177866e263f6f53a53b711fae6355336ee832ec1a59da8a",]
 category = "main"
+optional = false
+checksum = [
+    "sha256:a97e3ed9557ac0c5c3742f21fa4d852d7a050dd9b1b517e993aebef2dd2eea52",
+    "sha256:641140a05f959b37a177866e263f6f53a53b711fae6355336ee832ec1a59da8a"
+]
+python = [
+    "*"
+]
+
 [[package]]
 name = "pytest"
 version = "3.0.7"
-checksum = [ "sha256:66f332ae62593b874a648b10a8cb106bfdacd2c6288ed7dec3713c3a808a6017", "sha256:b70696ebd1a5e6b627e7e3ac1365a4bc60aaf3495e843c1e70448966c5224cab",]
+category = "dev"
+optional = false
+checksum = [
+    "sha256:66f332ae62593b874a648b10a8cb106bfdacd2c6288ed7dec3713c3a808a6017",
+    "sha256:b70696ebd1a5e6b627e7e3ac1365a4bc60aaf3495e843c1e70448966c5224cab"
+]
+python = [
+    "*"
+]
+
+[[package]]
+name = "pytzdata"
+version = "2017.2"
 category = "main"
-[root]
-name = "pypoet"
-version = "0.1.2"
+optional = false
+checksum = [
+    "sha256:a4d11b8123d00e947fac88508292b9e148da884fc64b884d9da3897a35fa2ab0",
+    "sha256:ec36940a8eec0a2ebc66a257a746428f7b4acce24cc000b3cda4805f259a8cd2"
+]
+python = [
+    "*"
+]
+
+[[package]]
+name = "requests"
+version = "2.13.0"
+category = "main"
+optional = false
+checksum = [
+    "sha256:66f332ae62593b874a648b10a8cb106bfdacd2c6288ed7dec3713c3a808a6017",
+    "sha256:b70696ebd1a5e6b627e7e3ac1365a4bc60aaf3495e843c1e70448966c5224cab"
+]
+python = [
+    "*"
+]
