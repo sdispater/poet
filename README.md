@@ -538,6 +538,17 @@ poet install --features "mysql pgsql"
 poet install -f mysql -f pgsql
 ```
 
+### `entry_points`
+
+Poet supports arbitrary [setuptools entry points](http://setuptools.readthedocs.io/en/latest/setuptools.html). To match the example in the setuptools documentation, you would use the following:
+
+```toml
+[entry-points] # Optional super table
+
+[entry-points."blogtool.parsers"]
+".rst" = "some_module::SomeClass"
+```
+
 ## Resources
 
 * [Official Website](https://github.com/sdispater/poet)

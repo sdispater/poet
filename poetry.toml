@@ -26,7 +26,7 @@ markdown-readme = ["pypandoc"] # Adds support for markdown readmes
 
 [dependencies]
 toml = "^0.9"
-requests = "^2.14"
+requests = "^2.18"
 requests-toolbelt = "^0.8"
 semantic_version = "^2.6"
 pygments = "^2.2"
