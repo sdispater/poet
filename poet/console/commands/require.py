@@ -4,6 +4,7 @@ from pygments import highlight
 from pygments.formatters.terminal import TerminalFormatter
 
 from ...version_selector import VersionSelector
+from ...version_parser import VersionParser
 from ...utils.lexers import TOMLLexer
 
 from .index_command import IndexCommand
@@ -27,12 +28,12 @@ class RequireCommand(IndexCommand):
             self.line('<warning>--install option is not supported yet.</>')
 
         requires = []
+        version_parser = VersionParser()
+
+        packages = version_parser.parse_name_version_pairs(packages)
 
         for package in packages:
-            constraint = None
-
-            if ' ' in package:
-                package, constraint = package.split(' ')
+            package, constraint = package['name'], package['version']
 
             matches = self._repository.search(package, 1)
 
@@ -66,27 +67,16 @@ class RequireCommand(IndexCommand):
                     )
 
             # no constraint yet, determine the best version automatically
-            if package is not False and ' ' not in package:
+            if constraint == '*':
                 self.line('')
-                question = self.create_question(
-                    'Enter the version constraint to require for <info>{}</> '
-                    '(or leave blank to use the latest version): '
-                    .format(package)
+                constraint = self._find_best_version_for_package(package)
+
+                self.line(
+                    'Using version <info>{}</info> for <info>{}</info>'
+                    .format(constraint, package)
                 )
-                question.attempts = 3
-                question.validator = lambda x: (x or '').strip() or False
 
-                constraint = self.ask(question)
-
-                if constraint is False:
-                    constraint = self._find_best_version_for_package(package)
-
-                    self.line(
-                        'Using version <info>{}</info> for <info>{}</info>'
-                        .format(constraint, package)
-                    )
-
-                package += ' {}'.format(constraint)
+            package += ' {}'.format(constraint)
 
             if package is not False:
                 requires.append(package)

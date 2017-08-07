@@ -38,7 +38,7 @@ class VersionParser(object):
         result = []
 
         for pair in pairs:
-            pair = re.sub('^([^=: ]+)[=: ](.*)$', '\\1 \\2', pair.strip())
+            pair = re.sub('^([^@=: ]+)[@=: ](.*)$', '\\1 \\2', pair.strip())
 
             if ' ' in pair:
                 name, version = pair.split(' ', 2)
