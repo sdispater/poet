@@ -225,14 +225,14 @@ class Installer(object):
         ]
 
         if packages:
-            packages = [canonicalize_name(name) for name in packages]
-            to_resolve_deps = [dep for dep in deps if dep.name in packages]
+            _packages = [canonicalize_name(name) for name in packages]
+            to_resolve_deps = [dep for dep in deps if dep.name in _packages]
 
-            packages = self.resolve_and_compare(to_resolve_deps, deps)
+            _packages = self.resolve_and_compare(to_resolve_deps, deps)
         else:
-            packages = self.resolve(deps)
+            _packages = self.resolve(deps)
 
-        deps = [PipDependency(p['name'], p['version'], p['category']) for p in packages]
+        deps = [PipDependency(p['name'], p['version'], p['category']) for p in _packages]
 
         delete = not packages and not features
         actions = self._resolve_update_actions(deps, current_deps, delete=delete)
@@ -268,7 +268,7 @@ class Installer(object):
             name = canonicalize_name(name)
             features[name] = [canonicalize_name(p) for p in featured_packages]
 
-        self._write_lock(packages, features)
+        self._write_lock(_packages, features)
 
     def lock(self, dev=True):
         if self._poet.is_lock():
@@ -488,7 +488,7 @@ class Installer(object):
 
     def _resolve_update_actions(self, deps, current_deps, delete=True):
         """
-        Determine actions on depenncies.
+        Determine actions on dependencies.
         
         :param deps: New dependencies
         :type deps: list[poet.package.PipDependency]
