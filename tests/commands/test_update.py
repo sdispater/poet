@@ -37,9 +37,13 @@ def test_update_only_update(mocker):
     write_lock = mocker.patch('poet.installer.Installer._write_lock')
     pendulum_req = InstallRequirement.from_line('pendulum==1.3.0')
     pytest_req = InstallRequirement.from_line('pytest==3.5.0')
+    pytzdata_req = InstallRequirement.from_line('pytzdata==2017.2')
+    requests_req = InstallRequirement.from_line('requests==2.13.0')
     resolve.return_value = [
         pendulum_req,
-        pytest_req
+        pytest_req,
+        pytzdata_req,
+        requests_req,
     ]
     get_hashes.return_value = {
         pendulum_req: set([
@@ -47,6 +51,14 @@ def test_update_only_update(mocker):
             "sha256:641140a05f959b37a177866e263f6f53a53b711fae6355336ee832ec1a59da8a"
         ]),
         pytest_req: set([
+            "sha256:66f332ae62593b874a648b10a8cb106bfdacd2c6288ed7dec3713c3a808a6017",
+            "sha256:b70696ebd1a5e6b627e7e3ac1365a4bc60aaf3495e843c1e70448966c5224cab"
+        ]),
+        pytzdata_req: set([
+            "sha256:a4d11b8123d00e947fac88508292b9e148da884fc64b884d9da3897a35fa2ab0",
+            "sha256:ec36940a8eec0a2ebc66a257a746428f7b4acce24cc000b3cda4805f259a8cd2"
+        ]),
+        requests_req: set([
             "sha256:66f332ae62593b874a648b10a8cb106bfdacd2c6288ed7dec3713c3a808a6017",
             "sha256:b70696ebd1a5e6b627e7e3ac1365a4bc60aaf3495e843c1e70448966c5224cab"
         ])
@@ -136,9 +148,13 @@ def test_update_with_new_packages(mocker):
     pendulum_req = InstallRequirement.from_line('pendulum==1.3.0')
     pytest_req = InstallRequirement.from_line('pytest==3.5.0')
     new_req = InstallRequirement.from_line('new==2.13.0')
+    pytzdata_req = InstallRequirement.from_line('pytzdata==2017.2')
+    requests_req = InstallRequirement.from_line('requests==2.13.0')
     resolve.return_value = [
         pendulum_req,
         pytest_req,
+        pytzdata_req,
+        requests_req,
         new_req
     ]
     get_hashes.return_value = {
@@ -147,6 +163,14 @@ def test_update_with_new_packages(mocker):
             "sha256:641140a05f959b37a177866e263f6f53a53b711fae6355336ee832ec1a59da8a"
         ]),
         pytest_req: set([
+            "sha256:66f332ae62593b874a648b10a8cb106bfdacd2c6288ed7dec3713c3a808a6017",
+            "sha256:b70696ebd1a5e6b627e7e3ac1365a4bc60aaf3495e843c1e70448966c5224cab"
+        ]),
+        pytzdata_req: set([
+            "sha256:a4d11b8123d00e947fac88508292b9e148da884fc64b884d9da3897a35fa2ab0",
+            "sha256:ec36940a8eec0a2ebc66a257a746428f7b4acce24cc000b3cda4805f259a8cd2"
+        ]),
+        requests_req: set([
             "sha256:66f332ae62593b874a648b10a8cb106bfdacd2c6288ed7dec3713c3a808a6017",
             "sha256:b70696ebd1a5e6b627e7e3ac1365a4bc60aaf3495e843c1e70448966c5224cab"
         ]),
@@ -179,15 +203,15 @@ Package operations: 1 install, 2 updates and 0 uninstalls
     assert output == expected
 
 
-def test_update_with_no_updates(mocker):
+def test_update_with_uninstalls(mocker):
     sub = mocker.patch('subprocess.check_output')
     resolve = mocker.patch('piptools.resolver.Resolver.resolve')
     get_hashes = mocker.patch('piptools.resolver.Resolver.resolve_hashes')
     reverse_dependencies = mocker.patch('piptools.resolver.Resolver.reverse_dependencies')
-    reverse_dependencies.return_value = {}
+    reverse_dependencies.return_value = {'requests': set()}
     write_lock = mocker.patch('poet.installer.Installer._write_lock')
-    pendulum_req = InstallRequirement.from_line('pendulum==1.2.0')
-    pytest_req = InstallRequirement.from_line('pytest==3.0.7')
+    pendulum_req = InstallRequirement.from_line('pendulum==1.3.0')
+    pytest_req = InstallRequirement.from_line('pytest==3.5.0')
     resolve.return_value = [
         pendulum_req,
         pytest_req
@@ -202,6 +226,67 @@ def test_update_with_no_updates(mocker):
             "sha256:b70696ebd1a5e6b627e7e3ac1365a4bc60aaf3495e843c1e70448966c5224cab"
         ])
     }
+    app = Application()
+    app.add(UpdateCommand())
+
+    command = app.find('update')
+    command_tester = CommandTester(command)
+    command_tester.execute([('command', command.name), ('--no-progress', True)])
+
+    assert sub.call_count == 4
+    write_lock.assert_called_once()
+
+    output = command_tester.get_display()
+    expected = """
+Updating dependencies
+
+Resolving dependencies
+Package operations: 0 installs, 2 updates and 2 uninstalls
+ - Updating pendulum (1.2.0 -> 1.3.0)
+ - Updating pytest (3.0.7 -> 3.5.0)
+ - Removing pytzdata (2017.2)
+ - Removing requests (2.13.0)
+"""
+
+    assert output == expected
+
+
+def test_update_with_no_updates(mocker):
+    sub = mocker.patch('subprocess.check_output')
+    resolve = mocker.patch('piptools.resolver.Resolver.resolve')
+    get_hashes = mocker.patch('piptools.resolver.Resolver.resolve_hashes')
+    reverse_dependencies = mocker.patch('piptools.resolver.Resolver.reverse_dependencies')
+    reverse_dependencies.return_value = {}
+    write_lock = mocker.patch('poet.installer.Installer._write_lock')
+    pendulum_req = InstallRequirement.from_line('pendulum==1.2.0')
+    pytest_req = InstallRequirement.from_line('pytest==3.0.7')
+    pytzdata_req = InstallRequirement.from_line('pytzdata==2017.2')
+    requests_req = InstallRequirement.from_line('requests==2.13.0')
+    resolve.return_value = [
+        pendulum_req,
+        pytest_req,
+        pytzdata_req,
+        requests_req
+    ]
+    get_hashes.return_value = {
+        pendulum_req: set([
+            "sha256:a97e3ed9557ac0c5c3742f21fa4d852d7a050dd9b1b517e993aebef2dd2eea52",
+            "sha256:641140a05f959b37a177866e263f6f53a53b711fae6355336ee832ec1a59da8a"
+        ]),
+        pytest_req: set([
+            "sha256:66f332ae62593b874a648b10a8cb106bfdacd2c6288ed7dec3713c3a808a6017",
+            "sha256:b70696ebd1a5e6b627e7e3ac1365a4bc60aaf3495e843c1e70448966c5224cab"
+        ]),
+        pytzdata_req: set([
+            "sha256:a4d11b8123d00e947fac88508292b9e148da884fc64b884d9da3897a35fa2ab0",
+            "sha256:ec36940a8eec0a2ebc66a257a746428f7b4acce24cc000b3cda4805f259a8cd2"
+        ]),
+        requests_req: set([
+            "sha256:66f332ae62593b874a648b10a8cb106bfdacd2c6288ed7dec3713c3a808a6017",
+            "sha256:b70696ebd1a5e6b627e7e3ac1365a4bc60aaf3495e843c1e70448966c5224cab"
+        ])
+    }
+
     app = Application()
     app.add(UpdateCommand())
 

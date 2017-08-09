@@ -24,4 +24,4 @@ python = ["^3.5"]
 requests = "^2.13"
 
 [dev-dependencies]
-pytest = "^3.0"
+pytest = "~3.0"

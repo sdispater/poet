@@ -17,7 +17,7 @@ def test_setup_basic(mocker):
     path = os.path.join(
         base_dir, 'poetry.toml'
     )
-    poet = Poet(path)
+    poet = Poet(path, mode=Poet.STRICT)
     builder = Builder()
     setup_kwargs = builder._setup(poet)
 
@@ -51,7 +51,7 @@ This is a basic example of a Poet project.
     assert classifiers == setup_kwargs['classifiers']
     assert {'console_scripts': []} == setup_kwargs['entry_points']
     assert ['requests>=2.13.0,<3.0.0'] == setup_kwargs['install_requires']
-    assert ['pytest>=3.0.0,<4.0.0'] == setup_kwargs['tests_require']
+    assert ['pytest>=3.0.0,<3.1.0'] == setup_kwargs['tests_require']
     assert {} == setup_kwargs['extras_require']
 
     assert ['basic_example', 'basic_example.sub_package'] == setup_kwargs['packages']
@@ -68,7 +68,7 @@ def test_setup_package_dir(mocker):
     path = os.path.join(
         base_dir, 'poetry.toml'
     )
-    poet = Poet(path)
+    poet = Poet(path, mode=Poet.STRICT)
     builder = Builder()
     setup_kwargs = builder._setup(poet)
 
