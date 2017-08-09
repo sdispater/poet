@@ -13,6 +13,7 @@ from ...version_selector import VersionSelector
 from ...utils.lexers import TOMLLexer
 from ...utils.helpers import call, template
 from ...build import Builder
+from ...git_config import GitConfig
 
 
 class InitCommand(IndexCommand):
@@ -37,11 +38,6 @@ in the current directory.
 
 <info>poet init</info>
 """
-
-    def __init__(self):
-        self._git_config = None
-
-        super(InitCommand, self).__init__()
 
     def handle(self):
         formatter = self.get_helper('formatter')
@@ -76,7 +72,7 @@ in the current directory.
         ])
 
         poet_file = self.poet_file
-        git_config = self.git_config()
+        git_config = GitConfig()
 
         name = self.option('name')
         if not name:
@@ -308,15 +304,3 @@ in the current directory.
         parser = VersionParser()
 
         return parser.parse_name_version_pairs(requirements)
-
-    def git_config(self):
-        config_list = call(['git', 'config', '-l'])
-
-        git_config = {}
-
-        m = re.findall('(?ms)^([^=]+)=(.*?)$', config_list)
-        if m:
-            for group in m:
-                git_config[group[0]] = group[1]
-
-        return git_config
