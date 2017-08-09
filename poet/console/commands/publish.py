@@ -2,11 +2,10 @@
 
 import os
 
-from twine.commands.upload import upload
-from twine.commands.register import register
 from requests.exceptions import HTTPError
 
 from ...publisher import Publisher
+from ...poet import Poet
 
 from .command import Command
 
@@ -19,6 +18,8 @@ class PublishCommand(Command):
         { --r|repository=pypi : The repository to register the package to }
         { --url= : The url of the repository to register the package to }
     """
+
+    read_mode = Poet.STRICT
 
     def handle(self):
         # Checking if package exists

@@ -15,7 +15,10 @@ from ...utils.helpers import call
 
 from ..styles.poet_style import PoetStyle
 
+
 class Command(BaseCommand):
+
+    read_mode = Poet.DEFAULT
     
     def __init__(self):
         super(Command, self).__init__()
@@ -37,7 +40,7 @@ class Command(BaseCommand):
         :rtype: poet.poet.Poet
         """
         if self._poet is None:
-            self._poet = Poet(self.poet_file)
+            self._poet = Poet(self.poet_file, mode=self.read_mode)
 
         return self._poet
 

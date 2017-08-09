@@ -4,6 +4,7 @@ import os
 import shutil
 
 from ..._compat import Path
+from ...poet import Poet
 from .command import Command
 
 
@@ -16,6 +17,8 @@ class PackageCommand(Command):
         { --no-wheels : Build only the source package. }
         { --no-progress : Do not output download progress. }
     """
+
+    read_mode = Poet.STRICT
 
     def handle(self):
         poet = self.poet

@@ -11,7 +11,6 @@ except ImportError:
     pypandoc = None
 
 from packaging.version import Version as PackageVersion
-from packaging.utils import canonicalize_name
 
 from .exceptions.poet import MissingElement, InvalidElement
 from .version_parser import VersionParser
@@ -22,13 +21,17 @@ from .utils.helpers import call
 
 class Poet(object):
 
+    DEFAULT = 'default'
+    STRICT = 'strict'
+
     EXCLUDES = ()
     INCLUDES = ()
 
-    def __init__(self, path, builder=Builder()):
+    def __init__(self, path, builder=Builder(), mode=DEFAULT):
         self._path = path
         self._dir = os.path.realpath(os.path.dirname(path))
         self._builder = builder
+        self._mode = mode
         self._git_config = None
 
         self._name = None
@@ -55,6 +58,7 @@ class Poet(object):
         with open(self._path) as f:
             self._config = toml.loads(f.read())
 
+        self.check()
         self.load()
 
     @property
@@ -227,7 +231,8 @@ class Poet(object):
         self._scripts = self._config.get('scripts', {})
         self._entry_points = self._config.get('entry-points', {})
 
-        self._load_readme()
+        if self._mode == self.STRICT:
+            self._load_readme()
 
         self._include = self._config['package'].get('include', []) + list(self.INCLUDES)
         self._exclude = self._config['package'].get('exclude', []) + list(self.EXCLUDES)
@@ -301,15 +306,17 @@ class Poet(object):
         if not isinstance(authors, list):
             raise InvalidElement('package.authors', 'it must be a list')
 
+        python_versions = package.get('python')
+        if not python_versions:
+            raise MissingElement('python')
+
         license = package.get('license')
         if license:
             self._check_license(license)
 
         readme = package.get('readme')
-        if not readme:
-            raise MissingElement('package.readme')
-
-        self._check_readme(readme)
+        if readme:
+            self._check_readme(readme)
 
     def _check_license(self, license):
         pass
@@ -337,7 +344,8 @@ class Poet(object):
         else:
             try:
                 return VersionParser().parse_constraints(constraint)
-            except ValueError:
+            except ValueError as e:
+                print(e)
                 pass
 
         raise InvalidElement('dependencies.{}'.format(name), message)

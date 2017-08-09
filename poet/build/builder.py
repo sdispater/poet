@@ -437,7 +437,8 @@ class Builder(object):
                     modules.append('.'.join(element.with_suffix('').parts))
                 elif element.suffix not in ['.py', '.pyc'] and '__pycache__' not in element.parts:
                     # Non Python file, add them to data
-                    self._manifest.append('include {}\n'.format(element.as_posix()))
+                    element = base_path / element
+                    self._manifest.append('include {}\n'.format(element.relative_to(root).as_posix()))
                 elif element.name == '__init__.py':
                     dir = element.parent
                     real_dir = base_path / dir
