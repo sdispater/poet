@@ -1,5 +1,7 @@
 # Poet: Dependency Management for Python
 
+`poet` has been deprecated in favor of [poetry](https://github.com/sdispater/poetry).
+
 ![Poet build status](https://travis-ci.org/sdispater/poet.svg)
 
 Poet helps you declare, manage and install dependencies of Python projects, ensuring you have the right stack everywhere.
@@ -34,7 +36,7 @@ $ poet completions fish > ~/.config/fish/completions/poet.fish
 $ poet completions zsh > ~/.zfunc/_poet
 ```
 
-*Note:* you may need to restart your shell in order for the changes to take 
+*Note:* you may need to restart your shell in order for the changes to take
 effect.
 
 For `zsh`, you must then add the following line in your `~/.zshrc` before
@@ -96,7 +98,7 @@ poet = 'poet:app.run'
 
 There are some things we can notice here:
 
-* It will try to enforce [semantic versioning](<http://semver.org>) as the best practice in version naming.
+* It will try to enforce [semantic versioning](http://semver.org) as the best practice in version naming.
 * You can specify the readme, included and excluded files: no more `MANIFEST.in`.
 `poet` will also use VCS ignore files (like `.gitignore`) to populate the `exclude` section.
 * Keywords (up to 5) can be specified and will act as tags on the packaging site.
@@ -125,6 +127,66 @@ to achieve that in a more intuitive way.
 ## Commands
 
 
+### new
+
+This command will help you setup a default package architecture.
+
+```bash
+poet new my_package
+```
+
+This will create a `my_package` directory with the following architecture:
+
+```text
+my_package
+    ├ README.md
+    ├ my_package/
+    │   └ __init__.py
+    ├ poetry.toml
+    └ tests/
+        ├ __init__.py
+        └ test_my_package.py
+```
+
+If your package is a single module, you can tell `poet` to use the `module` layout:
+
+```bash
+poet new my_package --layout module
+```
+
+This will produce the following structure:
+
+```text
+my_package
+    ├ README.md
+    ├ my_package.py
+    ├ poetry.toml
+    └ tests/
+        ├ __init__.py
+        └ test_my_package.py
+```
+
+If you already have created the directory that will hold your package, inside the directory just do:
+
+```bash
+poet install .
+```
+
+The name of the project will be the name of the directory. If you want to specify another name
+add the `--name` option to the command
+
+```bash
+poet install --name my_package .
+```
+
+#### Options
+
+   * `--name`: Name of the package.
+   * `--layout`: Layout to use (Default: `standard`).
+   * `--no-tests`: Do not create the tests directory.
+   * `--rst`: Create a README in the ReStructuredText format.
+
+
 ### init
 
 This command will help you create a `poetry.toml` file interactively
@@ -144,7 +206,7 @@ poet init default
 
 #### Options
 
-   * `--name`: Name of the package. 
+   * `--name`: Name of the package.
    * `--description`: Description of the package.
    * `--author`: Author of the package.
    * `--require`: Package to require with a version constraint. Should be in format `foo:1.0.0`.
